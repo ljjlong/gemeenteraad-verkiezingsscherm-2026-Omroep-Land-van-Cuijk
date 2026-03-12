@@ -16,14 +16,12 @@
       background: #000;
     }
 
-    /* ─── Viewport scale wrapper ─── */
     #vp {
       position: absolute; top: 0; left: 0;
       width: 1920px; height: 1080px;
       transform-origin: top left;
     }
 
-    /* ─── Achtergrond (beide schermen) ─── */
     .screen {
       position: absolute; top: 0; left: 0;
       width: 1920px; height: 1080px;
@@ -31,50 +29,40 @@
     }
 
     /* ══════════════════════════════════════
-       KAARTSCHERM
+       KAARTSCHERM – kaart 30% vergroot
     ══════════════════════════════════════ */
+    #map-screen {
+      /* Achtergrond ook 30% groter zodat ze gelijk lopen */
+      background-size: 130%;
+    }
+
     #map-wrap {
       position: absolute; top: 0; left: 0;
       width: 1920px; height: 1080px;
+      /* Vergroot de overlay-afbeeldingen met 30% vanuit het midden */
+      transform: scale(1.3);
+      transform-origin: center center;
       pointer-events: none;
     }
 
-    /* Transparante overlay-afbeeldingen (99.5% transparent, alleen glow) */
+    /* Transparante PNG-overlays (99.5% transparant, alleen glow) */
     .map-img {
       position: absolute; top: 0; left: 0;
       width: 1920px; height: 1080px;
-      opacity: 1;         /* altijd zichtbaar – ze zijn transparant */
-      transition: opacity 0.22s ease;
+      opacity: 1;
       pointer-events: none;
     }
-    /* Bij hover: de rest dimmen */
-    #map-wrap.has-hover .map-img         { opacity: 0.25; }
-    #map-wrap.has-hover .map-img.hovered { opacity: 1; }
 
-    /* Hotspots */
+    /* Onzichtbare klikgebieden – plaatsnamen verwijderd */
     .hotspot {
       position: absolute;
       transform: translate(-50%, -50%);
+      width: 65px; height: 65px;
       cursor: pointer;
-      color: #002a02;
-      font-size: 13px; font-weight: 700;
-      text-align: center;
-      text-shadow:
-        0 0 8px rgba(255,255,255,0.9),
-        0 0 4px rgba(255,255,255,0.8),
-        1px 1px 0 rgba(255,255,255,0.6);
-      padding: 3px 7px;
-      border-radius: 5px;
-      background: rgba(255,255,255,0.28);
-      transition: background 0.18s, transform 0.18s;
       z-index: 20;
-      white-space: nowrap;
-      letter-spacing: 0.03em;
-      user-select: none;
-    }
-    .hotspot:hover {
-      background: rgba(255,255,255,0.55);
-      transform: translate(-50%, -50%) scale(1.14);
+      /* volledig transparant, geen tekst, geen hover-effect */
+      background: transparent;
+      border: none;
     }
 
     /* Logo */
@@ -84,36 +72,35 @@
     }
 
     /* ══════════════════════════════════════
-       UITSLAGSCHERM
-       Zelfde achtergrond als beginscherm (geen donkere overlay)
+       UITSLAGSCHERM – zelfde achtergrond als beginscherm
     ══════════════════════════════════════ */
     #results-screen { display: none; }
 
-    /* Subtiele lichte was achter diagram voor leesbaarheid */
+    /* Subtiele lichte was voor leesbaarheid */
     #results-veil {
       position: absolute; top: 0; left: 0;
       width: 1920px; height: 1080px;
-      background: rgba(255, 255, 255, 0.18);
+      background: rgba(255,255,255,0.18);
     }
 
-    /* Plaatsnaam */
+    /* Plaatsnaam – 20px lager dan vorige versie, groter */
     #place-title {
-      position: absolute; top: 18px; left: 0; width: 1920px;
+      position: absolute; top: 38px; left: 0; width: 1920px;
       text-align: center;
-      font-size: 54px; font-weight: 800;
+      font-size: 72px; font-weight: 800;
       color: #002a02;
       letter-spacing: 0.07em;
       text-transform: uppercase;
       text-shadow:
-        0 0 20px rgba(255,255,255,0.9),
-        0 2px 6px rgba(255,255,255,0.6);
+        0 0 24px rgba(255,255,255,1),
+        0 0 10px rgba(255,255,255,0.7);
       z-index: 10; pointer-events: none;
     }
 
     /* ─── CHART AREA ─── */
     #chart-area {
       position: absolute;
-      top: 90px; left: 30px;
+      top: 135px; left: 30px;
       width: 1860px; height: 870px;
       display: flex;
       align-items: flex-end;
@@ -122,7 +109,6 @@
       z-index: 5;
     }
 
-    /* Partijkolom */
     .party-col {
       display: flex;
       flex-direction: column;
@@ -130,35 +116,26 @@
       cursor: pointer;
       flex: 1;
       max-width: 182px;
-      /* transform animatie voor sorteren */
     }
-    .party-col:hover { filter: brightness(1.05); }
+    .party-col:hover { filter: brightness(1.04); }
 
-    /* Partijkleur strip */
-    .p-strip {
-      width: 148px; height: 5px;
-      border-radius: 3px;
-      margin-bottom: 6px;
-    }
-
-    /* Container staven */
+    /* Container staven – verkleinde tussenruimte, staven tegen elkaar */
     .bars-box {
-      width: 150px; height: 490px;
+      width: 132px; height: 490px;
       display: flex;
       align-items: flex-end;
       justify-content: center;
-      gap: 8px;
+      gap: 2px;   /* staven bijna tegen elkaar */
       position: relative;
     }
     .bars-box::before {
       content: '';
       position: absolute;
-      bottom: 0; left: 10px; right: 10px;
+      bottom: 0; left: 4px; right: 4px;
       height: 1px;
-      background: rgba(0,42,2,0.2);
+      background: rgba(0,42,2,0.18);
     }
 
-    /* Staven */
     .bar {
       width: 60px;
       border-radius: 5px 5px 0 0;
@@ -166,7 +143,7 @@
       min-height: 5px;
       transition: height 0.75s cubic-bezier(.17,.67,0,1.02);
     }
-    .bar-2021 { opacity: 0.60; order: 1; }
+    .bar-2021 { opacity: 0.58; order: 1; }
     .bar-2026 {
       order: 2;
       opacity: 0;
@@ -175,7 +152,7 @@
     }
     .bar-2026.show { opacity: 1; }
 
-    /* Percentage label boven staaf */
+    /* Percentage boven staaf */
     .bar-pct {
       position: absolute;
       top: -26px; left: 50%;
@@ -184,49 +161,41 @@
       color: #002a02;
       white-space: nowrap;
       pointer-events: none;
-      text-shadow:
-        0 0 6px rgba(255,255,255,1),
-        0 0 10px rgba(255,255,255,0.8);
+      text-shadow: 0 0 6px rgba(255,255,255,1), 0 0 10px rgba(255,255,255,0.8);
     }
 
-    /* Jaar label onder staaf */
-    .bar-year {
-      position: absolute;
-      bottom: -20px; left: 50%;
-      transform: translateX(-50%);
-      font-size: 10px; font-weight: 600;
-      color: rgba(0,42,2,0.55);
-      pointer-events: none;
-    }
-
-    /* Verschil badge (tekst WIT houden) */
+    /* Verschil badge – VERBORGEN tot klik, tekst wit */
     .diff-badge {
       margin-top: 10px;
-      width: 140px; min-height: 32px;
+      width: 136px; min-height: 32px;
       border-radius: 7px;
       display: flex; align-items: center; justify-content: center;
       font-size: 16px; font-weight: 800;
-      color: #fff;              /* Expliciet wit houden */
-      background: rgba(0,42,2,0.12);
+      color: #fff;
+      background: rgba(0,42,2,0.10);
       letter-spacing: 0.04em;
-      transition: background 0.5s;
+      transition: background 0.4s;
+      /* verborgen tot klik */
+      opacity: 0;
+      transition: opacity 0.3s, background 0.4s;
     }
-    .diff-badge.winst   { background: #16a34a; color: #fff; }
-    .diff-badge.verlies { background: #b91c1c; color: #fff; }
+    .diff-badge.visible   { opacity: 1; }
+    .diff-badge.winst     { background: #16a34a; color: #fff; }
+    .diff-badge.verlies   { background: #b91c1c; color: #fff; }
 
-    /* 2026 percentage */
+    /* 2026 percentage – VERBORGEN tot klik */
     .pct-26-val {
       margin-top: 7px;
       font-size: 21px; font-weight: 800;
       color: #002a02;
       letter-spacing: 0.04em;
       min-height: 28px;
-      text-shadow:
-        0 0 8px rgba(255,255,255,0.9),
-        0 0 4px rgba(255,255,255,0.6);
+      text-shadow: 0 0 8px rgba(255,255,255,0.9), 0 0 4px rgba(255,255,255,0.6);
+      opacity: 0;
+      transition: opacity 0.3s;
     }
+    .pct-26-val.visible { opacity: 1; }
 
-    /* Partijnaam */
     .p-name {
       margin-top: 5px;
       font-size: 13px; font-weight: 700;
@@ -235,12 +204,10 @@
       text-transform: uppercase;
       letter-spacing: 0.04em;
       line-height: 1.25;
-      text-shadow:
-        0 0 8px rgba(255,255,255,0.9),
-        0 0 4px rgba(255,255,255,0.6);
+      text-shadow: 0 0 8px rgba(255,255,255,0.9), 0 0 4px rgba(255,255,255,0.6);
     }
 
-    /* ─── TOTAAL STEMMEN ─── */
+    /* Totaal stemmen */
     #total-box {
       position: absolute; bottom: 84px; right: 44px;
       text-align: right; z-index: 10;
@@ -256,12 +223,10 @@
       font-size: 52px; font-weight: 800;
       color: #002a02;
       letter-spacing: 0.06em;
-      text-shadow:
-        0 0 20px rgba(255,255,255,0.9),
-        0 0 8px rgba(255,255,255,0.7);
+      text-shadow: 0 0 20px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.7);
     }
 
-    /* ─── NAVIGATIEKNOPPEN ─── */
+    /* Navigatieknoppen */
     #nav-btns {
       position: absolute; bottom: 18px; left: 50%;
       transform: translateX(-50%);
@@ -271,22 +236,20 @@
       width: 64px; height: 64px; border-radius: 50%;
       border: 2px solid rgba(0,42,2,0.45);
       background: rgba(255,255,255,0.55);
-      color: #002a02;
       display: flex; align-items: center; justify-content: center;
       cursor: pointer;
       transition: background 0.18s, border-color 0.18s, transform 0.15s;
       backdrop-filter: blur(4px);
-      font-size: 24px;
       user-select: none;
     }
     .nbtn:hover {
-      background: rgba(255,255,255,0.85);
+      background: rgba(255,255,255,0.88);
       border-color: #002a02;
       transform: scale(1.10);
     }
     .nbtn svg { width: 28px; height: 28px; fill: #002a02; }
 
-    /* ══ OVERGANGSOVERLAY ══ */
+    /* Overgangsoverlay */
     #dip-overlay {
       position: absolute; top: 0; left: 0;
       width: 1920px; height: 1080px;
@@ -302,120 +265,118 @@
 <body>
 <div id="vp">
 
-  <!-- ══ OVERGANGSOVERLAY ══ -->
   <div id="dip-overlay"></div>
 
-  <!-- ══════════════════════════════════════════
-       KAARTSCHERM
-  ══════════════════════════════════════════ -->
+  <!-- ══ KAARTSCHERM ══ -->
   <div id="map-screen" class="screen">
 
     <!--
-      Alle 33 plaatsafbeeldingen zijn transparante PNG-overlays (99.5% transparant).
-      De achtergrondkaart zit in 'verkiezingen achtergrond.png' (via .screen).
-      Door alle overlays te stapelen zijn alle plaatsen tegelijk zichtbaar als glow.
+      Alle 33 transparante overlay-afbeeldingen gestapeld.
+      map-wrap is 30% groter geschaald vanuit het midden.
+      Plaatsnamen en hover-effect zijn verwijderd.
     -->
     <div id="map-wrap">
-      <img class="map-img" data-place="Beers"         src="images/img_1 Beers.png"          alt="">
-      <img class="map-img" data-place="Beugen"        src="images/img_2 Beugen.png"         alt="">
-      <img class="map-img" data-place="Boxmeer"       src="images/img_3 Boxmeer.png"        alt="">
-      <img class="map-img" data-place="Cuijk"         src="images/img_4 Cuijk.png"          alt="">
-      <img class="map-img" data-place="Escharen"      src="images/img_5 Escharen.png"       alt="">
-      <img class="map-img" data-place="Gassel"        src="images/img_6 Gassel.png"         alt="">
-      <img class="map-img" data-place="Grave"         src="images/img_7 Grave.png"          alt="">
-      <img class="map-img" data-place="Groeningen"    src="images/img_8 Groeningen.png"     alt="">
-      <img class="map-img" data-place="Haps"          src="images/img_9 Haps.png"           alt="">
-      <img class="map-img" data-place="Holthees"      src="images/img_10 Holthees.png"      alt="">
-      <img class="map-img" data-place="Katwijk"       src="images/img_11 Katwijk.png"       alt="">
-      <img class="map-img" data-place="Landhorst"     src="images/img_12 Landhorst.png"     alt="">
-      <img class="map-img" data-place="Langenboom"    src="images/img_13 Langeboom.png"     alt="">
-      <img class="map-img" data-place="Ledeacker"     src="images/img_14 Ledeacker.png"     alt="">
-      <img class="map-img" data-place="Linden"        src="images/img_15 Linden.png"        alt="">
-      <img class="map-img" data-place="Maashees"      src="images/img_16 Maashees.png"      alt="">
-      <img class="map-img" data-place="Mill"          src="images/img_17 Mill.png"          alt="">
-      <img class="map-img" data-place="Oeffelt"       src="images/img_18 Oeffelt.png"       alt="">
-      <img class="map-img" data-place="Oploo"         src="images/img_19 Oploo.png"         alt="">
-      <img class="map-img" data-place="Overloon"      src="images/img_20 Overloon.png"      alt="">
-      <img class="map-img" data-place="Rijkevoort"    src="images/img_21 Rijkevoort.png"    alt="">
-      <img class="map-img" data-place="Sambeek"       src="images/img_22 Sambeek.png"       alt="">
-      <img class="map-img" data-place="Sint Agatha"   src="images/img_23 Sint Agatha.png"   alt="">
-      <img class="map-img" data-place="Sint Anthonis" src="images/img_24 Sint Anthonis.png" alt="">
-      <img class="map-img" data-place="Sint Hubert"   src="images/img_25 Sint Hubert.png"   alt="">
-      <img class="map-img" data-place="Stevensbeek"   src="images/img_26_Stevensbeek.png"   alt="">
-      <img class="map-img" data-place="Velp"          src="images/img_26 Velp.png"          alt="">
-      <img class="map-img" data-place="Vianen"        src="images/img_27 Vianen.png"        alt="">
-      <img class="map-img" data-place="Vierlingsbeek" src="images/img_28 Vierlingsbeek.png" alt="">
-      <img class="map-img" data-place="Vortum-Mullem" src="images/img_29 Vortum-Mullem.png" alt="">
-      <img class="map-img" data-place="Wanroij"       src="images/img_30 Wanroij.png"       alt="">
-      <img class="map-img" data-place="Westerbeek"    src="images/img_31 Westerbeek.png"    alt="">
-      <img class="map-img" data-place="Wilbertoord"   src="images/img_32 Wilbertoord.png"   alt="">
+      <img class="map-img" src="images/img_1 Beers.png"          alt="">
+      <img class="map-img" src="images/img_2 Beugen.png"         alt="">
+      <img class="map-img" src="images/img_3 Boxmeer.png"        alt="">
+      <img class="map-img" src="images/img_4 Cuijk.png"          alt="">
+      <img class="map-img" src="images/img_5 Escharen.png"       alt="">
+      <img class="map-img" src="images/img_6 Gassel.png"         alt="">
+      <img class="map-img" src="images/img_7 Grave.png"          alt="">
+      <img class="map-img" src="images/img_8 Groeningen.png"     alt="">
+      <img class="map-img" src="images/img_9 Haps.png"           alt="">
+      <img class="map-img" src="images/img_10 Holthees.png"      alt="">
+      <img class="map-img" src="images/img_11 Katwijk.png"       alt="">
+      <img class="map-img" src="images/img_12 Landhorst.png"     alt="">
+      <img class="map-img" src="images/img_13 Langeboom.png"     alt="">
+      <img class="map-img" src="images/img_14 Ledeacker.png"     alt="">
+      <img class="map-img" src="images/img_15 Linden.png"        alt="">
+      <img class="map-img" src="images/img_16 Maashees.png"      alt="">
+      <img class="map-img" src="images/img_17 Mill.png"          alt="">
+      <img class="map-img" src="images/img_18 Oeffelt.png"       alt="">
+      <img class="map-img" src="images/img_19 Oploo.png"         alt="">
+      <img class="map-img" src="images/img_20 Overloon.png"      alt="">
+      <img class="map-img" src="images/img_21 Rijkevoort.png"    alt="">
+      <img class="map-img" src="images/img_22 Sambeek.png"       alt="">
+      <img class="map-img" src="images/img_23 Sint Agatha.png"   alt="">
+      <img class="map-img" src="images/img_24 Sint Anthonis.png" alt="">
+      <img class="map-img" src="images/img_25 Sint Hubert.png"   alt="">
+      <img class="map-img" src="images/img_26_Stevensbeek.png"   alt="">
+      <img class="map-img" src="images/img_26 Velp.png"          alt="">
+      <img class="map-img" src="images/img_27 Vianen.png"        alt="">
+      <img class="map-img" src="images/img_28 Vierlingsbeek.png" alt="">
+      <img class="map-img" src="images/img_29 Vortum-Mullem.png" alt="">
+      <img class="map-img" src="images/img_30 Wanroij.png"       alt="">
+      <img class="map-img" src="images/img_31 Westerbeek.png"    alt="">
+      <img class="map-img" src="images/img_32 Wilbertoord.png"   alt="">
     </div>
 
-    <!-- Klikpunten op de kaart -->
-    <div class="hotspot" data-place="Beers"         style="left:844px;top:329px">Beers</div>
-    <div class="hotspot" data-place="Beugen"        style="left:1047px;top:486px">Beugen</div>
-    <div class="hotspot" data-place="Boxmeer"       style="left:1053px;top:557px">Boxmeer</div>
-    <div class="hotspot" data-place="Cuijk"         style="left:945px;top:319px">Cuijk</div>
-    <div class="hotspot" data-place="Escharen"      style="left:716px;top:281px">Escharen</div>
-    <div class="hotspot" data-place="Gassel"        style="left:784px;top:283px">Gassel</div>
-    <div class="hotspot" data-place="Grave"         style="left:693px;top:207px">Grave</div>
-    <div class="hotspot" data-place="Groeningen"    style="left:1136px;top:661px">Groeningen</div>
-    <div class="hotspot" data-place="Haps"          style="left:921px;top:425px">Haps</div>
-    <div class="hotspot" data-place="Holthees"      style="left:1163px;top:766px">Holthees</div>
-    <div class="hotspot" data-place="Katwijk"       style="left:935px;top:250px">Katwijk</div>
-    <div class="hotspot" data-place="Landhorst"     style="left:779px;top:627px">Landhorst</div>
-    <div class="hotspot" data-place="Langenboom"    style="left:696px;top:386px">Langenboom</div>
-    <div class="hotspot" data-place="Ledeacker"     style="left:918px;top:592px">Ledeacker</div>
-    <div class="hotspot" data-place="Linden"        style="left:847px;top:257px">Linden</div>
-    <div class="hotspot" data-place="Maashees"      style="left:1207px;top:792px">Maashees</div>
-    <div class="hotspot" data-place="Mill"          style="left:780px;top:411px">Mill</div>
-    <div class="hotspot" data-place="Oeffelt"       style="left:1044px;top:411px">Oeffelt</div>
-    <div class="hotspot" data-place="Oploo"         style="left:881px;top:712px">Oploo</div>
-    <div class="hotspot" data-place="Overloon"      style="left:1032px;top:760px">Overloon</div>
-    <div class="hotspot" data-place="Rijkevoort"    style="left:955px;top:520px">Rijkevoort</div>
-    <div class="hotspot" data-place="Sambeek"       style="left:1098px;top:618px">Sambeek</div>
-    <div class="hotspot" data-place="Sint Agatha"   style="left:1008px;top:381px">Sint Agatha</div>
-    <div class="hotspot" data-place="Sint Anthonis" style="left:919px;top:622px">Sint Anthonis</div>
-    <div class="hotspot" data-place="Sint Hubert"   style="left:832px;top:472px">Sint Hubert</div>
-    <div class="hotspot" data-place="Stevensbeek"   style="left:1017px;top:683px">Stevensbeek</div>
-    <div class="hotspot" data-place="Velp"          style="left:667px;top:241px">Velp</div>
-    <div class="hotspot" data-place="Vianen"        style="left:911px;top:346px">Vianen</div>
-    <div class="hotspot" data-place="Vierlingsbeek" style="left:1147px;top:729px">Vierlingsbeek</div>
-    <div class="hotspot" data-place="Vortum-Mullem" style="left:1108px;top:653px">Vortum-Mullem</div>
-    <div class="hotspot" data-place="Wanroij"       style="left:844px;top:542px">Wanroij</div>
-    <div class="hotspot" data-place="Westerbeek"    style="left:905px;top:758px">Westerbeek</div>
-    <div class="hotspot" data-place="Wilbertoord"   style="left:750px;top:530px">Wilbertoord</div>
+    <!--
+      Onzichtbare klikgebieden – gepositioneerd op de 1.3x geschaalde coördinaten.
+      Geen tekst, geen achtergrond, geen hover-stijl.
+    -->
+    <div class="hotspot" data-place="Beers"         style="left:809px;top:266px"></div>
+    <div class="hotspot" data-place="Beugen"        style="left:1073px;top:470px"></div>
+    <div class="hotspot" data-place="Boxmeer"       style="left:1081px;top:562px"></div>
+    <div class="hotspot" data-place="Cuijk"         style="left:940px;top:253px"></div>
+    <div class="hotspot" data-place="Escharen"      style="left:643px;top:203px"></div>
+    <div class="hotspot" data-place="Gassel"        style="left:731px;top:206px"></div>
+    <div class="hotspot" data-place="Grave"         style="left:613px;top:107px"></div>
+    <div class="hotspot" data-place="Groeningen"    style="left:1189px;top:697px"></div>
+    <div class="hotspot" data-place="Haps"          style="left:909px;top:390px"></div>
+    <div class="hotspot" data-place="Holthees"      style="left:1224px;top:834px"></div>
+    <div class="hotspot" data-place="Katwijk"       style="left:928px;top:163px"></div>
+    <div class="hotspot" data-place="Landhorst"     style="left:725px;top:653px"></div>
+    <div class="hotspot" data-place="Langenboom"    style="left:617px;top:340px"></div>
+    <div class="hotspot" data-place="Ledeacker"     style="left:905px;top:608px"></div>
+    <div class="hotspot" data-place="Linden"        style="left:813px;top:172px"></div>
+    <div class="hotspot" data-place="Maashees"      style="left:1281px;top:868px"></div>
+    <div class="hotspot" data-place="Mill"          style="left:726px;top:372px"></div>
+    <div class="hotspot" data-place="Oeffelt"       style="left:1069px;top:372px"></div>
+    <div class="hotspot" data-place="Oploo"         style="left:857px;top:764px"></div>
+    <div class="hotspot" data-place="Overloon"      style="left:1054px;top:826px"></div>
+    <div class="hotspot" data-place="Rijkevoort"    style="left:954px;top:514px"></div>
+    <div class="hotspot" data-place="Sambeek"       style="left:1139px;top:641px"></div>
+    <div class="hotspot" data-place="Sint Agatha"   style="left:1022px;top:333px"></div>
+    <div class="hotspot" data-place="Sint Anthonis" style="left:907px;top:647px"></div>
+    <div class="hotspot" data-place="Sint Hubert"   style="left:794px;top:452px"></div>
+    <div class="hotspot" data-place="Stevensbeek"   style="left:1034px;top:726px"></div>
+    <div class="hotspot" data-place="Velp"          style="left:579px;top:151px"></div>
+    <div class="hotspot" data-place="Vianen"        style="left:896px;top:288px"></div>
+    <div class="hotspot" data-place="Vierlingsbeek" style="left:1203px;top:786px"></div>
+    <div class="hotspot" data-place="Vortum-Mullem" style="left:1152px;top:687px"></div>
+    <div class="hotspot" data-place="Wanroij"       style="left:809px;top:543px"></div>
+    <div class="hotspot" data-place="Westerbeek"    style="left:888px;top:823px"></div>
+    <div class="hotspot" data-place="Wilbertoord"   style="left:687px;top:527px"></div>
 
     <img id="map-logo" src="images/img_33 logo.png" alt="logo">
   </div>
 
-  <!-- ══════════════════════════════════════════
-       UITSLAGSCHERM
-       Zelfde achtergrond als beginscherm (geen donkere overlay meer)
-  ══════════════════════════════════════════ -->
+  <!-- ══ UITSLAGSCHERM ══ -->
   <div id="results-screen" class="screen">
-    <!-- Subtiele lichte was voor leesbaarheid -->
     <div id="results-veil"></div>
 
+    <!-- Plaatsnaam: 20px lager (top: 38px), grotere tekst (72px) -->
     <div id="place-title">Plaatsnaam</div>
 
     <div id="chart-area"></div>
 
-    <!-- Totaal stemmen rechtsonder -->
     <div id="total-box">
       <div id="total-label">Totaal stemmen</div>
-      <div id="total-votes">0000</div>
+      <div id="total-votes">—</div>
     </div>
 
-    <!-- Navigatieknoppen midden onder -->
     <div id="nav-btns">
+      <!-- Terug naar kaart -->
       <div class="nbtn" id="btn-back" title="Terug naar kaart">
         <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
       </div>
-      <div class="nbtn" id="btn-all" title="Toon alle 2026 uitslagen in één keer">
+      <!-- Toon alle 2026 in één keer -->
+      <div class="nbtn" id="btn-all" title="Toon alle 2026 uitslagen">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>
       </div>
-      <div class="nbtn" id="btn-sort" title="Sorteer op aantal stemmen">
+      <!-- Sorteer op stemmen -->
+      <div class="nbtn" id="btn-sort" title="Sorteer op stemmen">
         <svg viewBox="0 0 24 24">
           <path d="M3 18h6v-2H3v2zm0-5h12v-2H3v2zm0-7v2h18V6H3z"/>
           <path d="M16 13.17V3h-2v10.17l-2.59-2.58L10 12l5 5 5-5-1.41-1.41z"/>
@@ -424,14 +385,12 @@
     </div>
   </div>
 
-</div><!-- /#vp -->
+</div>
 
 <script>
 'use strict';
 
-/* ═══════════════════════════════════════════════════
-   VIEWPORT SCHALING
-═══════════════════════════════════════════════════ */
+/* ── Viewport schaling ── */
 (function () {
   const vp = document.getElementById('vp');
   function resize() {
@@ -444,14 +403,11 @@
   window.addEventListener('resize', resize);
 })();
 
-/* ═══════════════════════════════════════════════════
-   CONFIGURATIE
-═══════════════════════════════════════════════════ */
+/* ── Configuratie ── */
 const SHEET_ID = '10ocFxapQPNdjpHilOZK69MTesSmmwb2_rEZWSKxtaTw';
 const POLL_MS  = 15000;
 const MAX_H    = 460;
 
-/* Partijen definitie */
 const PARTIES = [
   { id:'CDA',         name:'CDA',          color:'#2CC74D', keys:['cda'] },
   { id:'TeamLokaal',  name:'Team Lokaal',  color:'#02A8F3', keys:['team lokaal','teamlokaal'] },
@@ -465,7 +421,6 @@ const PARTIES = [
   { id:'50Plus',      name:'50Plus',       color:'#84236C', keys:['50plus','50 plus','50+'] },
 ];
 
-/* ─── 2021 uitslag data ─── */
 const D21 = {
   "Beers":         {CDA:140,TeamLokaal:360,LiberaalLVC:102,GLPVDA:46,SP:17,VVD:30,D66:37,FVD:12,LBT:26,"50Plus":11,t:781},
   "Beugen":        {CDA:242,TeamLokaal:301,LiberaalLVC:21,GLPVDA:55,SP:44,VVD:40,D66:29,FVD:9,LBT:0,"50Plus":10,t:751},
@@ -502,9 +457,7 @@ const D21 = {
   "Wilbertoord":   {CDA:0,TeamLokaal:63,LiberaalLVC:11,GLPVDA:12,SP:5,VVD:7,D66:15,FVD:10,LBT:2,"50Plus":3,t:128},
 };
 
-/* ═══════════════════════════════════════════════════
-   STATE
-═══════════════════════════════════════════════════ */
+/* ── State ── */
 let curPlace  = null;
 let d26       = {};
 let total26   = 0;
@@ -513,40 +466,59 @@ let sortMode  = false;
 let colOrder  = PARTIES.map(p => p.id);
 let pollTimer = null;
 
-/* ═══════════════════════════════════════════════════
-   KAART – HOVER & KLIK
-═══════════════════════════════════════════════════ */
-const mapWrap = document.getElementById('map-wrap');
+/* ══════════════════════════════════════
+   OPTEL-ANIMATIE
+══════════════════════════════════════ */
+/**
+ * Animate a numeric value counting up from 0 to `target`.
+ * @param {HTMLElement} el
+ * @param {number}      target      – eindwaarde
+ * @param {number}      duration    – milliseconden
+ * @param {boolean}     isInt       – true = geheel getal, false = 1 decimaal
+ * @param {string}      suffix      – bijv. '%' of ''
+ * @param {string}      sign        – '+', '-', of ''
+ */
+function countUp(el, target, duration, isInt, suffix, sign) {
+  sign   = sign   || '';
+  suffix = suffix || '';
+  const t0 = performance.now();
 
+  function step(now) {
+    const progress = Math.min((now - t0) / duration, 1);
+    const ease     = 1 - Math.pow(1 - progress, 3); // cubic ease-out
+    const current  = target * ease;
+
+    el.textContent = sign + (isInt
+      ? Math.round(current).toLocaleString('nl-NL')
+      : current.toFixed(1)) + suffix;
+
+    if (progress < 1) requestAnimationFrame(step);
+    else el.textContent = sign + (isInt
+      ? target.toLocaleString('nl-NL')
+      : target.toFixed(1)) + suffix;
+  }
+  requestAnimationFrame(step);
+}
+
+/* ══════════════════════════════════════
+   KAART – KLIK (geen hover meer)
+══════════════════════════════════════ */
 document.querySelectorAll('.hotspot').forEach(el => {
-  const place = el.dataset.place;
-
-  el.addEventListener('mouseenter', () => {
-    mapWrap.classList.add('has-hover');
-    const img = mapWrap.querySelector(`.map-img[data-place="${place}"]`);
-    if (img) img.classList.add('hovered');
-  });
-
-  el.addEventListener('mouseleave', () => {
-    mapWrap.classList.remove('has-hover');
-    mapWrap.querySelectorAll('.map-img.hovered').forEach(i => i.classList.remove('hovered'));
-  });
-
-  el.addEventListener('click', () => openPlace(place));
+  el.addEventListener('click', () => openPlace(el.dataset.place));
 });
 
-/* ═══════════════════════════════════════════════════
-   OVERGANG (DIP TO WHITE)
-═══════════════════════════════════════════════════ */
+/* ══════════════════════════════════════
+   OVERGANG
+══════════════════════════════════════ */
 function dip(cb) {
   const ov = document.getElementById('dip-overlay');
   ov.classList.add('show');
   setTimeout(() => { cb(); setTimeout(() => ov.classList.remove('show'), 60); }, 380);
 }
 
-/* ═══════════════════════════════════════════════════
+/* ══════════════════════════════════════
    OPEN PLAATS
-═══════════════════════════════════════════════════ */
+══════════════════════════════════════ */
 function openPlace(place) {
   curPlace = place; revealed = false; sortMode = false;
   colOrder = PARTIES.map(p => p.id);
@@ -564,34 +536,32 @@ function openPlace(place) {
   });
 }
 
-/* ═══════════════════════════════════════════════════
-   GOOGLE SHEETS DATA OPHALEN
-═══════════════════════════════════════════════════ */
+/* ══════════════════════════════════════
+   GOOGLE SHEETS
+══════════════════════════════════════ */
 function fetchSheetData(place) {
   const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(place)}`;
   fetch(url, { cache: 'no-store' })
     .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
     .then(text => {
-      const m = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)\s*;?\s*$/);
+      const m   = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)\s*;?\s*$/);
       const obj = JSON.parse(m ? m[1] : text.replace(/^[^{]*/, '').replace(/[^}]*$/, ''));
-      parseSheet(obj, place);
+      parseSheet(obj);
     })
     .catch(e => console.warn('[Sheets]', place, e.message));
 }
 
-function parseSheet(resp, place) {
+function parseSheet(resp) {
   if (!resp?.table) return;
   const { cols, rows } = resp.table;
   if (!cols?.length || !rows?.length) return;
 
-  /* Kolomindex → partyId mapping */
   const colMap = {};
   cols.forEach((c, i) => {
     const pid = labelToPid((c.label || '').toLowerCase().trim());
-    if (pid && colMap[pid] === undefined) colMap[pid] = i;
+    if (pid && !(pid in colMap)) colMap[pid] = i;
   });
 
-  /* Zoek Totaal-rij (van achteren) */
   let totRow = null;
   for (let i = rows.length - 1; i >= 0; i--) {
     const r = rows[i];
@@ -603,24 +573,25 @@ function parseSheet(resp, place) {
   if (!totRow?.c) return;
 
   const newD = {}; let newT = 0;
-
-  /* Via kolomnamen */
   Object.entries(colMap).forEach(([pid, ci]) => {
-    const v = parseFloat(totRow.c[ci]?.v) || 0;
-    newD[pid] = (newD[pid] || 0) + v; newT += v;
+    const v    = parseFloat(totRow.c[ci]?.v) || 0;
+    newD[pid]  = (newD[pid] || 0) + v; newT += v;
   });
-
-  /* Fallback: positieel */
   if (!Object.keys(newD).length) {
     PARTIES.forEach((p, i) => {
-      const v = parseFloat(totRow.c[i + 1]?.v) || 0;
+      const v    = parseFloat(totRow.c[i + 1]?.v) || 0;
       newD[p.id] = v; newT += v;
     });
   }
 
+  const wasZero = total26 === 0;
   d26 = newD; total26 = newT;
   updateBars();
-  document.getElementById('total-votes').textContent = newT > 0 ? newT.toLocaleString('nl-NL') : '—';
+
+  /* Totaal stemmen optellen-animatie */
+  const tvEl = document.getElementById('total-votes');
+  if (newT > 0) countUp(tvEl, newT, 1200, true, '', '');
+  else tvEl.textContent = '—';
 }
 
 function labelToPid(lbl) {
@@ -630,9 +601,9 @@ function labelToPid(lbl) {
   return null;
 }
 
-/* ═══════════════════════════════════════════════════
+/* ══════════════════════════════════════
    CHART OPBOUWEN
-═══════════════════════════════════════════════════ */
+══════════════════════════════════════ */
 function buildChart() {
   const area = document.getElementById('chart-area');
   area.innerHTML = '';
@@ -651,20 +622,18 @@ function buildChart() {
     col.dataset.pid = pid;
     col.style.order = orderIdx;
 
+    /* Geen gekleurde strepen, geen jaar-labels onder staven */
     col.innerHTML = `
-      <div class="p-strip" style="background:${party.color}"></div>
       <div class="bars-box">
         <div class="bar bar-2021" id="b21-${pid}" style="height:${h21}px;background:${party.color}">
           <span class="bar-pct">${pct21>0.001?(pct21*100).toFixed(1)+'%':''}</span>
-          <span class="bar-year">2021</span>
         </div>
         <div class="bar bar-2026" id="b26-${pid}" style="height:5px;background:${party.color}">
           <span class="bar-pct" id="lbl26-${pid}"></span>
-          <span class="bar-year">2026</span>
         </div>
       </div>
-      <div class="diff-badge" id="diff-${pid}">—</div>
-      <div class="pct-26-val" id="val26-${pid}">—</div>
+      <div class="diff-badge" id="diff-${pid}"></div>
+      <div class="pct-26-val" id="val26-${pid}"></div>
       <div class="p-name">${party.name}</div>
     `;
     col.addEventListener('click', () => revealOne(pid));
@@ -674,14 +643,14 @@ function buildChart() {
   if (total26 > 0) updateBars();
 }
 
-/* ─── Update staafhoogten ─── */
+/* ── Update staafhoogten & data zonder reveal ── */
 function updateBars() {
   if (!curPlace) return;
   const dd21 = D21[curPlace] || {};
   const t21  = dd21.t || 1;
 
   PARTIES.forEach(({ id: pid }) => {
-    const b26 = document.getElementById(`b26-${pid}`);
+    const b26  = document.getElementById(`b26-${pid}`);
     if (!b26) return;
     const v26   = d26[pid] || 0;
     const v21   = dd21[pid] || 0;
@@ -689,51 +658,86 @@ function updateBars() {
     const pct21 = t21 > 0 ? v21 / t21 : 0;
     const diff  = pct26 - pct21;
 
+    /* Staafhoogte */
     b26.style.height = `${Math.max(5, Math.round(pct26 * MAX_H))}px`;
 
+    /* Label boven 2026-staaf */
     const lbl = document.getElementById(`lbl26-${pid}`);
     if (lbl) lbl.textContent = total26 > 0 && pct26 > 0.001 ? (pct26*100).toFixed(1)+'%' : '';
 
-    const val = document.getElementById(`val26-${pid}`);
-    if (val) val.textContent = total26 > 0 ? (pct26*100).toFixed(1)+'%' : '—';
-
+    /* Sla doelwaarden op als data-attributen voor de klik-animatie */
     const badge = document.getElementById(`diff-${pid}`);
-    if (badge) {
-      if (total26 > 0) {
-        badge.textContent = `${diff > 5e-4?'+':''}${(diff*100).toFixed(1)}%`;
-        badge.className   = 'diff-badge' + (diff > 5e-4 ? ' winst' : diff < -5e-4 ? ' verlies' : '');
-      } else {
-        badge.textContent = '—';
-        badge.className   = 'diff-badge';
-      }
+    if (badge && total26 > 0) {
+      const sign = diff > 5e-4 ? '+' : (diff < -5e-4 ? '-' : '');
+      badge.dataset.target    = Math.abs(diff * 100).toFixed(1);
+      badge.dataset.sign      = sign;
+      badge.dataset.className = 'diff-badge' + (diff > 5e-4 ? ' winst' : diff < -5e-4 ? ' verlies' : '');
+    }
+    const valEl = document.getElementById(`val26-${pid}`);
+    if (valEl && total26 > 0) {
+      valEl.dataset.target = (pct26 * 100).toFixed(1);
     }
 
-    if (revealed) b26.classList.add('show');
+    /* Als al onthuld: direct bijwerken */
+    if (revealed) revealOneSilent(pid);
   });
 }
 
+/* ── Onthul één partij met animatie ── */
 function revealOne(pid) {
+  /* 2026-staaf tonen */
   document.getElementById(`b26-${pid}`)?.classList.add('show');
+
+  /* Verschil-badge: kleur direct, getal telt op */
+  const badge = document.getElementById(`diff-${pid}`);
+  if (badge && badge.dataset.target) {
+    badge.className = badge.dataset.className + ' visible';
+    const target = parseFloat(badge.dataset.target);
+    const sign   = badge.dataset.sign || '';
+    countUp(badge, target, 900, false, '%', sign);
+  }
+
+  /* 2026-percentage telt op */
+  const valEl = document.getElementById(`val26-${pid}`);
+  if (valEl && valEl.dataset.target) {
+    valEl.classList.add('visible');
+    countUp(valEl, parseFloat(valEl.dataset.target), 900, false, '%', '');
+  }
+}
+
+/* Stille versie voor bij reeds-onthulde herordening */
+function revealOneSilent(pid) {
+  document.getElementById(`b26-${pid}`)?.classList.add('show');
+  const badge = document.getElementById(`diff-${pid}`);
+  if (badge && badge.dataset.target) {
+    badge.className = badge.dataset.className + ' visible';
+    const sign = badge.dataset.sign || '';
+    badge.textContent = sign + badge.dataset.target + '%';
+  }
+  const valEl = document.getElementById(`val26-${pid}`);
+  if (valEl && valEl.dataset.target) {
+    valEl.classList.add('visible');
+    valEl.textContent = valEl.dataset.target + '%';
+  }
 }
 
 function revealAll() {
   revealed = true;
-  document.querySelectorAll('.bar-2026').forEach(b => b.classList.add('show'));
+  PARTIES.forEach(p => revealOne(p.id));
 }
 
-/* ═══════════════════════════════════════════════════
-   GESORTEERD WEERGEVEN – FLIP-ANIMATIE (2 seconden)
-═══════════════════════════════════════════════════ */
+/* ══════════════════════════════════════
+   SORTEREN – FLIP-ANIMATIE 2 SECONDEN
+══════════════════════════════════════ */
 function toggleSort() {
   const dd21 = D21[curPlace] || {};
   const t21  = dd21.t || 1;
 
-  /* Huidige x-posities vastleggen VOOR de herordening */
-  const cols = Array.from(document.querySelectorAll('.party-col'));
+  /* Posities vóór herordening */
+  const cols    = Array.from(document.querySelectorAll('.party-col'));
   const beforeX = {};
   cols.forEach(col => { beforeX[col.dataset.pid] = col.getBoundingClientRect().left; });
 
-  /* Nieuwe volgorde bepalen */
   sortMode = !sortMode;
   if (sortMode) {
     colOrder = [...PARTIES].sort((a, b) => {
@@ -745,30 +749,26 @@ function toggleSort() {
     colOrder = PARTIES.map(p => p.id);
   }
 
-  /* Nieuwe CSS order property toepassen */
+  /* Nieuwe CSS order toepassen */
   colOrder.forEach((pid, i) => {
     const col = document.querySelector(`.party-col[data-pid="${pid}"]`);
     if (col) col.style.order = i;
   });
 
-  /* Nieuwe x-posities meten NA herordening */
+  /* Posities na herordening */
   const afterX = {};
   cols.forEach(col => { afterX[col.dataset.pid] = col.getBoundingClientRect().left; });
 
-  /* FLIP: tijdelijk op de oude plek zetten, dan animeren naar nieuw */
+  /* FLIP animatie */
   cols.forEach(col => {
     const pid = col.dataset.pid;
     const dx  = (beforeX[pid] || 0) - (afterX[pid] || 0);
     if (Math.abs(dx) < 0.5) return;
-
     col.style.transition = 'none';
     col.style.transform  = `translateX(${dx}px)`;
-    /* Forceer reflow */
     void col.offsetWidth;
-    /* Animeer naar eindpositie */
     col.style.transition = 'transform 2s cubic-bezier(0.22, 1, 0.36, 1)';
     col.style.transform  = 'translateX(0)';
-
     col.addEventListener('transitionend', () => {
       col.style.transition = '';
       col.style.transform  = '';
@@ -776,9 +776,9 @@ function toggleSort() {
   });
 }
 
-/* ═══════════════════════════════════════════════════
+/* ══════════════════════════════════════
    NAVIGATIE
-═══════════════════════════════════════════════════ */
+══════════════════════════════════════ */
 document.getElementById('btn-back').addEventListener('click', () => {
   clearInterval(pollTimer);
   dip(() => {

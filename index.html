@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920">
+  <title>Gemeenteraadsverkiezingen 2026 – Land van Cuijk</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 100vw; height: 100vh;
+      overflow: hidden;
+      font-family: 'Montserrat', 'Arial', sans-serif;
+      background: #000;
+    }
+
+    #vp {
+      position: absolute; top: 0; left: 0;
+      width: 1920px; height: 1080px;
+      transform-origin: top left;
+    }
+
+    .screen {
+      position: absolute; top: 0; left: 0;
+      width: 1920px; height: 1080px;
+      background: url('verkiezingen achtergrond.png') center/cover no-repeat;
+    }
+
+    /* ══════════════════════════════════════
+       KAARTSCHERM – kaart 30% vergroot
+    ══════════════════════════════════════ */
+    #map-screen {
+      /* Achtergrond ook 30% groter zodat ze gelijk lopen */
+      background-size: 130%;
+    }
+
+    #map-wrap {
+      position: absolute; top: 0; left: 0;
+      width: 1920px; height: 1080px;
+      /* Vergroot de overlay-afbeeldingen met 30% vanuit het midden */
+      transform: scale(1.3);
+      transform-origin: center center;
+      pointer-events: none;
+    }
+
+    /* Transparante PNG-overlays (99.5% transparant, alleen glow) */
+    .map-img {
+      position: absolute; top: 0; left: 0;
+      width: 1920px; height: 1080px;
+      opacity: 1;
+      pointer-events: none;
+    }
+
+    /* Onzichtbare klikgebieden – plaatsnamen verwijderd */
+    .hotspot {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      width: 65px; height: 65px;
+      cursor: pointer;
+      z-index: 20;
+      /* volledig transparant, geen tekst, geen hover-effect */
+      background: transparent;
+      border: none;
+    }
+
+    /* Logo */
+    #map-logo {
+      position: absolute; bottom: 24px; right: 30px;
+      height: 72px; opacity: 0.88; z-index: 30;
+    }
+
+    /* ══════════════════════════════════════
+       UITSLAGSCHERM – zelfde achtergrond als beginscherm
+    ══════════════════════════════════════ */
+    #results-screen { display: none; }
+
+    /* Subtiele lichte was voor leesbaarheid */
+    #results-veil {
+      position: absolute; top: 0; left: 0;
+      width: 1920px; height: 1080px;
+      background: rgba(255,255,255,0.18);
+    }
+
+    /* Plaatsnaam – 20px lager dan vorige versie, groter */
+    #place-title {
+      position: absolute; top: 38px; left: 0; width: 1920px;
+      text-align: center;
+      font-size: 72px; font-weight: 800;
+      color: #002a02;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      text-shadow:
+        0 0 24px rgba(255,255,255,1),
+        0 0 10px rgba(255,255,255,0.7);
+      z-index: 10; pointer-events: none;
+    }
+
+    /* ─── CHART AREA ─── */
+    #chart-area {
+      position: absolute;
+      top: 135px; left: 30px;
+      width: 1860px; height: 870px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-evenly;
+      padding-bottom: 150px;
+      z-index: 5;
+    }
+
+    .party-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      flex: 1;
+      max-width: 182px;
+    }
+    .party-col:hover { filter: brightness(1.04); }
+
+    /* Container staven – verkleinde tussenruimte, staven tegen elkaar */
+    .bars-box {
+      width: 132px; height: 490px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 2px;   /* staven bijna tegen elkaar */
+      position: relative;
+    }
+    .bars-box::before {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 4px; right: 4px;
+      height: 1px;
+      background: rgba(0,42,2,0.18);
+    }
+
+    .bar {
+      width: 60px;
+      border-radius: 5px 5px 0 0;
+      position: relative;
+      min-height: 5px;
+      transition: height 0.75s cubic-bezier(.17,.67,0,1.02);
+    }
+    .bar-2021 { opacity: 0.58; order: 1; }
+    .bar-2026 {
+      order: 2;
+      opacity: 0;
+      transition: height 0.75s cubic-bezier(.17,.67,0,1.02),
+                  opacity 0.45s ease;
+    }
+    .bar-2026.show { opacity: 1; }
+
+    /* Percentage boven staaf */
+    .bar-pct {
+      position: absolute;
+      top: -26px; left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px; font-weight: 700;
+      color: #002a02;
+      white-space: nowrap;
+      pointer-events: none;
+      text-shadow: 0 0 6px rgba(255,255,255,1), 0 0 10px rgba(255,255,255,0.8);
+    }
+
+    /* Verschil badge – VERBORGEN tot klik, tekst wit */
+    .diff-badge {
+      margin-top: 10px;
+      width: 136px; min-height: 32px;
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 800;
+      color: #fff;
+      background: rgba(0,42,2,0.10);
+      letter-spacing: 0.04em;
+      transition: background 0.4s;
+      /* verborgen tot klik */
+      opacity: 0;
+      transition: opacity 0.3s, background 0.4s;
+    }
+    .diff-badge.visible   { opacity: 1; }
+    .diff-badge.winst     { background: #16a34a; color: #fff; }
+    .diff-badge.verlies   { background: #b91c1c; color: #fff; }
+
+    /* 2026 percentage – VERBORGEN tot klik */
+    .pct-26-val {
+      margin-top: 7px;
+      font-size: 21px; font-weight: 800;
+      color: #002a02;
+      letter-spacing: 0.04em;
+      min-height: 28px;
+      text-shadow: 0 0 8px rgba(255,255,255,0.9), 0 0 4px rgba(255,255,255,0.6);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .pct-26-val.visible { opacity: 1; }
+
+    .p-name {
+      margin-top: 5px;
+      font-size: 13px; font-weight: 700;
+      color: #002a02;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      line-height: 1.25;
+      text-shadow: 0 0 8px rgba(255,255,255,0.9), 0 0 4px rgba(255,255,255,0.6);
+    }
+
+    /* Totaal stemmen */
+    #total-box {
+      position: absolute; bottom: 84px; right: 44px;
+      text-align: right; z-index: 10;
+    }
+    #total-label {
+      font-size: 13px; font-weight: 600;
+      color: #002a02;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-shadow: 0 0 8px rgba(255,255,255,0.9);
+    }
+    #total-votes {
+      font-size: 52px; font-weight: 800;
+      color: #002a02;
+      letter-spacing: 0.06em;
+      text-shadow: 0 0 20px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.7);
+    }
+
+    /* Navigatieknoppen */
+    #nav-btns {
+      position: absolute; bottom: 18px; left: 50%;
+      transform: translateX(-50%);
+      display: flex; gap: 24px; z-index: 20;
+    }
+    .nbtn {
+      width: 64px; height: 64px; border-radius: 50%;
+      border: 2px solid rgba(0,42,2,0.45);
+      background: rgba(255,255,255,0.55);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: background 0.18s, border-color 0.18s, transform 0.15s;
+      backdrop-filter: blur(4px);
+      user-select: none;
+    }
+    .nbtn:hover {
+      background: rgba(255,255,255,0.88);
+      border-color: #002a02;
+      transform: scale(1.10);
+    }
+    .nbtn svg { width: 28px; height: 28px; fill: #002a02; }
+
+    /* Overgangsoverlay */
+    #dip-overlay {
+      position: absolute; top: 0; left: 0;
+      width: 1920px; height: 1080px;
+      background: #fff;
+      opacity: 0; pointer-events: none;
+      z-index: 9999;
+      transition: opacity 0.36s ease;
+    }
+    #dip-overlay.show { opacity: 1; pointer-events: all; }
+
+  </style>
+</head>
+<body>
+<div id="vp">
+
+  <div id="dip-overlay"></div>
+
+  <!-- ══ KAARTSCHERM ══ -->
+  <div id="map-screen" class="screen">
+
+    <!--
+      Alle 33 transparante overlay-afbeeldingen gestapeld.
+      map-wrap is 30% groter geschaald vanuit het midden.
+      Plaatsnamen en hover-effect zijn verwijderd.
+    -->
+    <div id="map-wrap">
+      <img class="map-img" src="images/img_1 Beers.png"          alt="">
+      <img class="map-img" src="images/img_2 Beugen.png"         alt="">
+      <img class="map-img" src="images/img_3 Boxmeer.png"        alt="">
+      <img class="map-img" src="images/img_4 Cuijk.png"          alt="">
+      <img class="map-img" src="images/img_5 Escharen.png"       alt="">
+      <img class="map-img" src="images/img_6 Gassel.png"         alt="">
+      <img class="map-img" src="images/img_7 Grave.png"          alt="">
+      <img class="map-img" src="images/img_8 Groeningen.png"     alt="">
+      <img class="map-img" src="images/img_9 Haps.png"           alt="">
+      <img class="map-img" src="images/img_10 Holthees.png"      alt="">
+      <img class="map-img" src="images/img_11 Katwijk.png"       alt="">
+      <img class="map-img" src="images/img_12 Landhorst.png"     alt="">
+      <img class="map-img" src="images/img_13 Langeboom.png"     alt="">
+      <img class="map-img" src="images/img_14 Ledeacker.png"     alt="">
+      <img class="map-img" src="images/img_15 Linden.png"        alt="">
+      <img class="map-img" src="images/img_16 Maashees.png"      alt="">
+      <img class="map-img" src="images/img_17 Mill.png"          alt="">
+      <img class="map-img" src="images/img_18 Oeffelt.png"       alt="">
+      <img class="map-img" src="images/img_19 Oploo.png"         alt="">
+      <img class="map-img" src="images/img_20 Overloon.png"      alt="">
+      <img class="map-img" src="images/img_21 Rijkevoort.png"    alt="">
+      <img class="map-img" src="images/img_22 Sambeek.png"       alt="">
+      <img class="map-img" src="images/img_23 Sint Agatha.png"   alt="">
+      <img class="map-img" src="images/img_24 Sint Anthonis.png" alt="">
+      <img class="map-img" src="images/img_25 Sint Hubert.png"   alt="">
+      <img class="map-img" src="images/img_26_Stevensbeek.png"   alt="">
+      <img class="map-img" src="images/img_26 Velp.png"          alt="">
+      <img class="map-img" src="images/img_27 Vianen.png"        alt="">
+      <img class="map-img" src="images/img_28 Vierlingsbeek.png" alt="">
+      <img class="map-img" src="images/img_29 Vortum-Mullem.png" alt="">
+      <img class="map-img" src="images/img_30 Wanroij.png"       alt="">
+      <img class="map-img" src="images/img_31 Westerbeek.png"    alt="">
+      <img class="map-img" src="images/img_32 Wilbertoord.png"   alt="">
+    </div>
+
+    <!--
+      Onzichtbare klikgebieden – gepositioneerd op de 1.3x geschaalde coördinaten.
+      Geen tekst, geen achtergrond, geen hover-stijl.
+    -->
+    <div class="hotspot" data-place="Beers"         style="left:809px;top:266px"></div>
+    <div class="hotspot" data-place="Beugen"        style="left:1073px;top:470px"></div>
+    <div class="hotspot" data-place="Boxmeer"       style="left:1081px;top:562px"></div>
+    <div class="hotspot" data-place="Cuijk"         style="left:940px;top:253px"></div>
+    <div class="hotspot" data-place="Escharen"      style="left:643px;top:203px"></div>
+    <div class="hotspot" data-place="Gassel"        style="left:731px;top:206px"></div>
+    <div class="hotspot" data-place="Grave"         style="left:613px;top:107px"></div>
+    <div class="hotspot" data-place="Groeningen"    style="left:1189px;top:697px"></div>
+    <div class="hotspot" data-place="Haps"          style="left:909px;top:390px"></div>
+    <div class="hotspot" data-place="Holthees"      style="left:1224px;top:834px"></div>
+    <div class="hotspot" data-place="Katwijk"       style="left:928px;top:163px"></div>
+    <div class="hotspot" data-place="Landhorst"     style="left:725px;top:653px"></div>
+    <div class="hotspot" data-place="Langenboom"    style="left:617px;top:340px"></div>
+    <div class="hotspot" data-place="Ledeacker"     style="left:905px;top:608px"></div>
+    <div class="hotspot" data-place="Linden"        style="left:813px;top:172px"></div>
+    <div class="hotspot" data-place="Maashees"      style="left:1281px;top:868px"></div>
+    <div class="hotspot" data-place="Mill"          style="left:726px;top:372px"></div>
+    <div class="hotspot" data-place="Oeffelt"       style="left:1069px;top:372px"></div>
+    <div class="hotspot" data-place="Oploo"         style="left:857px;top:764px"></div>
+    <div class="hotspot" data-place="Overloon"      style="left:1054px;top:826px"></div>
+    <div class="hotspot" data-place="Rijkevoort"    style="left:954px;top:514px"></div>
+    <div class="hotspot" data-place="Sambeek"       style="left:1139px;top:641px"></div>
+    <div class="hotspot" data-place="Sint Agatha"   style="left:1022px;top:333px"></div>
+    <div class="hotspot" data-place="Sint Anthonis" style="left:907px;top:647px"></div>
+    <div class="hotspot" data-place="Sint Hubert"   style="left:794px;top:452px"></div>
+    <div class="hotspot" data-place="Stevensbeek"   style="left:1034px;top:726px"></div>
+    <div class="hotspot" data-place="Velp"          style="left:579px;top:151px"></div>
+    <div class="hotspot" data-place="Vianen"        style="left:896px;top:288px"></div>
+    <div class="hotspot" data-place="Vierlingsbeek" style="left:1203px;top:786px"></div>
+    <div class="hotspot" data-place="Vortum-Mullem" style="left:1152px;top:687px"></div>
+    <div class="hotspot" data-place="Wanroij"       style="left:809px;top:543px"></div>
+    <div class="hotspot" data-place="Westerbeek"    style="left:888px;top:823px"></div>
+    <div class="hotspot" data-place="Wilbertoord"   style="left:687px;top:527px"></div>
+
+    <img id="map-logo" src="images/img_33 logo.png" alt="logo">
+  </div>
+
+  <!-- ══ UITSLAGSCHERM ══ -->
+  <div id="results-screen" class="screen">
+    <div id="results-veil"></div>
+
+    <!-- Plaatsnaam: 20px lager (top: 38px), grotere tekst (72px) -->
+    <div id="place-title">Plaatsnaam</div>
+
+    <div id="chart-area"></div>
+
+    <div id="total-box">
+      <div id="total-label">Totaal stemmen</div>
+      <div id="total-votes">—</div>
+    </div>
+
+    <div id="nav-btns">
+      <!-- Terug naar kaart -->
+      <div class="nbtn" id="btn-back" title="Terug naar kaart">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      </div>
+      <!-- Toon alle 2026 in één keer -->
+      <div class="nbtn" id="btn-all" title="Toon alle 2026 uitslagen">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>
+      </div>
+      <!-- Sorteer op stemmen -->
+      <div class="nbtn" id="btn-sort" title="Sorteer op stemmen">
+        <svg viewBox="0 0 24 24">
+          <path d="M3 18h6v-2H3v2zm0-5h12v-2H3v2zm0-7v2h18V6H3z"/>
+          <path d="M16 13.17V3h-2v10.17l-2.59-2.58L10 12l5 5 5-5-1.41-1.41z"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+
+/* ── Viewport schaling ── */
+(function () {
+  const vp = document.getElementById('vp');
+  function resize() {
+    const sc = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    const ox = (window.innerWidth  - 1920 * sc) / 2;
+    const oy = (window.innerHeight - 1080 * sc) / 2;
+    vp.style.transform = `translate(${ox}px,${oy}px) scale(${sc})`;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+})();
+
+/* ── Configuratie ── */
+const SHEET_ID = '10ocFxapQPNdjpHilOZK69MTesSmmwb2_rEZWSKxtaTw';
+const POLL_MS  = 15000;
+const MAX_H    = 460;
+
+const PARTIES = [
+  { id:'CDA',         name:'CDA',          color:'#2CC74D', keys:['cda'] },
+  { id:'TeamLokaal',  name:'Team Lokaal',  color:'#02A8F3', keys:['team lokaal','teamlokaal'] },
+  { id:'LiberaalLVC', name:'Liberaal LVC', color:'#7B56A4', keys:['liberaal','lvc'] },
+  { id:'GLPVDA',      name:'GL / PVDA',    color:'#C01414', keys:['groen','pvda','gl/pvda','gl-pvda','gl / pvda'] },
+  { id:'SP',          name:'SP',           color:'#E8161C', keys:['sp'] },
+  { id:'VVD',         name:'VVD',          color:'#FF5400', keys:['vvd'] },
+  { id:'D66',         name:'D66',          color:'#5BB89A', keys:['d66'] },
+  { id:'FVD',         name:'FvD',          color:'#A81814', keys:['forum','fvd','democratie'] },
+  { id:'LBT',         name:'LBT',          color:'#E8C000', keys:['bart theunissen','lbt','lijst bart'] },
+  { id:'50Plus',      name:'50Plus',       color:'#84236C', keys:['50plus','50 plus','50+'] },
+];
+
+const D21 = {
+  "Beers":         {CDA:140,TeamLokaal:360,LiberaalLVC:102,GLPVDA:46,SP:17,VVD:30,D66:37,FVD:12,LBT:26,"50Plus":11,t:781},
+  "Beugen":        {CDA:242,TeamLokaal:301,LiberaalLVC:21,GLPVDA:55,SP:44,VVD:40,D66:29,FVD:9,LBT:0,"50Plus":10,t:751},
+  "Boxmeer":       {CDA:1864,TeamLokaal:612,LiberaalLVC:216,GLPVDA:590,SP:607,VVD:382,D66:363,FVD:150,LBT:26,"50Plus":92,t:4902},
+  "Cuijk":         {CDA:1043,TeamLokaal:928,LiberaalLVC:1055,GLPVDA:698,SP:476,VVD:373,D66:419,FVD:256,LBT:146,"50Plus":171,t:5565},
+  "Escharen":      {CDA:0,TeamLokaal:0,LiberaalLVC:0,GLPVDA:0,SP:0,VVD:0,D66:0,FVD:0,LBT:0,"50Plus":0,t:0},
+  "Gassel":        {CDA:167,TeamLokaal:41,LiberaalLVC:74,GLPVDA:45,SP:27,VVD:27,D66:46,FVD:18,LBT:10,"50Plus":8,t:463},
+  "Grave":         {CDA:529,TeamLokaal:134,LiberaalLVC:212,GLPVDA:378,SP:163,VVD:282,D66:248,FVD:154,LBT:2,"50Plus":44,t:2146},
+  "Groeningen":    {CDA:33,TeamLokaal:16,LiberaalLVC:98,GLPVDA:23,SP:13,VVD:14,D66:7,FVD:9,LBT:1,"50Plus":4,t:218},
+  "Haps":          {CDA:163,TeamLokaal:490,LiberaalLVC:563,GLPVDA:46,SP:26,VVD:24,D66:29,FVD:39,LBT:6,"50Plus":12,t:1398},
+  "Holthees":      {CDA:24,TeamLokaal:56,LiberaalLVC:65,GLPVDA:26,SP:25,VVD:11,D66:3,FVD:8,LBT:1,"50Plus":2,t:221},
+  "Katwijk":       {CDA:50,TeamLokaal:47,LiberaalLVC:26,GLPVDA:25,SP:9,VVD:15,D66:16,FVD:8,LBT:2,"50Plus":8,t:206},
+  "Landhorst":     {CDA:219,TeamLokaal:34,LiberaalLVC:7,GLPVDA:11,SP:8,VVD:8,D66:8,FVD:12,LBT:0,"50Plus":46,t:353},
+  "Langenboom":    {CDA:523,TeamLokaal:117,LiberaalLVC:46,GLPVDA:59,SP:45,VVD:84,D66:21,FVD:21,LBT:4,"50Plus":18,t:938},
+  "Ledeacker":     {CDA:315,TeamLokaal:51,LiberaalLVC:56,GLPVDA:67,SP:20,VVD:49,D66:48,FVD:24,LBT:5,"50Plus":8,t:643},
+  "Linden":        {CDA:11,TeamLokaal:58,LiberaalLVC:9,GLPVDA:18,SP:2,VVD:7,D66:39,FVD:5,LBT:6,"50Plus":3,t:158},
+  "Maashees":      {CDA:56,TeamLokaal:13,LiberaalLVC:219,GLPVDA:25,SP:32,VVD:6,D66:10,FVD:21,LBT:0,"50Plus":3,t:385},
+  "Mill":          {CDA:916,TeamLokaal:487,LiberaalLVC:504,GLPVDA:127,SP:109,VVD:163,D66:85,FVD:104,LBT:57,"50Plus":52,t:2604},
+  "Oeffelt":       {CDA:93,TeamLokaal:845,LiberaalLVC:43,GLPVDA:60,SP:31,VVD:28,D66:28,FVD:21,LBT:1,"50Plus":9,t:1159},
+  "Oploo":         {CDA:359,TeamLokaal:182,LiberaalLVC:9,GLPVDA:43,SP:18,VVD:79,D66:18,FVD:27,LBT:2,"50Plus":21,t:758},
+  "Overloon":      {CDA:458,TeamLokaal:517,LiberaalLVC:191,GLPVDA:125,SP:65,VVD:52,D66:33,FVD:57,LBT:4,"50Plus":26,t:1528},
+  "Rijkevoort":    {CDA:220,TeamLokaal:402,LiberaalLVC:23,GLPVDA:32,SP:28,VVD:31,D66:31,FVD:17,LBT:1,"50Plus":7,t:792},
+  "Sambeek":       {CDA:337,TeamLokaal:72,LiberaalLVC:63,GLPVDA:68,SP:64,VVD:58,D66:39,FVD:26,LBT:3,"50Plus":19,t:749},
+  "Sint Agatha":   {CDA:44,TeamLokaal:73,LiberaalLVC:26,GLPVDA:21,SP:8,VVD:18,D66:16,FVD:12,LBT:4,"50Plus":7,t:229},
+  "Sint Anthonis": {CDA:891,TeamLokaal:437,LiberaalLVC:66,GLPVDA:171,SP:90,VVD:134,D66:75,FVD:64,LBT:8,"50Plus":59,t:1995},
+  "Sint Hubert":   {CDA:216,TeamLokaal:166,LiberaalLVC:43,GLPVDA:45,SP:22,VVD:11,D66:11,FVD:25,LBT:3,"50Plus":13,t:555},
+  "Stevensbeek":   {CDA:0,TeamLokaal:37,LiberaalLVC:10,GLPVDA:20,SP:17,VVD:17,D66:8,FVD:19,LBT:2,"50Plus":5,t:135},
+  "Velp":          {CDA:187,TeamLokaal:14,LiberaalLVC:29,GLPVDA:26,SP:8,VVD:24,D66:50,FVD:9,LBT:2,"50Plus":2,t:351},
+  "Vianen":        {CDA:80,TeamLokaal:197,LiberaalLVC:75,GLPVDA:41,SP:34,VVD:18,D66:17,FVD:4,LBT:14,"50Plus":5,t:485},
+  "Vierlingsbeek": {CDA:163,TeamLokaal:78,LiberaalLVC:450,GLPVDA:90,SP:134,VVD:32,D66:41,FVD:68,LBT:7,"50Plus":20,t:1083},
+  "Vortum-Mullem": {CDA:246,TeamLokaal:21,LiberaalLVC:20,GLPVDA:29,SP:28,VVD:26,D66:6,FVD:12,LBT:2,"50Plus":3,t:393},
+  "Wanroij":       {CDA:588,TeamLokaal:263,LiberaalLVC:148,GLPVDA:37,SP:21,VVD:66,D66:36,FVD:37,LBT:6,"50Plus":30,t:1232},
+  "Westerbeek":    {CDA:174,TeamLokaal:24,LiberaalLVC:6,GLPVDA:15,SP:14,VVD:19,D66:26,FVD:5,LBT:2,"50Plus":13,t:298},
+  "Wilbertoord":   {CDA:0,TeamLokaal:63,LiberaalLVC:11,GLPVDA:12,SP:5,VVD:7,D66:15,FVD:10,LBT:2,"50Plus":3,t:128},
+};
+
+/* ── State ── */
+let curPlace  = null;
+let d26       = {};
+let total26   = 0;
+let revealed  = false;
+let sortMode  = false;
+let colOrder  = PARTIES.map(p => p.id);
+let pollTimer = null;
+
+/* ══════════════════════════════════════
+   OPTEL-ANIMATIE
+══════════════════════════════════════ */
+/**
+ * Animate a numeric value counting up from 0 to `target`.
+ * @param {HTMLElement} el
+ * @param {number}      target      – eindwaarde
+ * @param {number}      duration    – milliseconden
+ * @param {boolean}     isInt       – true = geheel getal, false = 1 decimaal
+ * @param {string}      suffix      – bijv. '%' of ''
+ * @param {string}      sign        – '+', '-', of ''
+ */
+function countUp(el, target, duration, isInt, suffix, sign) {
+  sign   = sign   || '';
+  suffix = suffix || '';
+  const t0 = performance.now();
+
+  function step(now) {
+    const progress = Math.min((now - t0) / duration, 1);
+    const ease     = 1 - Math.pow(1 - progress, 3); // cubic ease-out
+    const current  = target * ease;
+
+    el.textContent = sign + (isInt
+      ? Math.round(current).toLocaleString('nl-NL')
+      : current.toFixed(1)) + suffix;
+
+    if (progress < 1) requestAnimationFrame(step);
+    else el.textContent = sign + (isInt
+      ? target.toLocaleString('nl-NL')
+      : target.toFixed(1)) + suffix;
+  }
+  requestAnimationFrame(step);
+}
+
+/* ══════════════════════════════════════
+   KAART – KLIK (geen hover meer)
+══════════════════════════════════════ */
+document.querySelectorAll('.hotspot').forEach(el => {
+  el.addEventListener('click', () => openPlace(el.dataset.place));
+});
+
+/* ══════════════════════════════════════
+   OVERGANG
+══════════════════════════════════════ */
+function dip(cb) {
+  const ov = document.getElementById('dip-overlay');
+  ov.classList.add('show');
+  setTimeout(() => { cb(); setTimeout(() => ov.classList.remove('show'), 60); }, 380);
+}
+
+/* ══════════════════════════════════════
+   OPEN PLAATS
+══════════════════════════════════════ */
+function openPlace(place) {
+  curPlace = place; revealed = false; sortMode = false;
+  colOrder = PARTIES.map(p => p.id);
+  d26 = {}; total26 = 0;
+
+  dip(() => {
+    document.getElementById('map-screen').style.display     = 'none';
+    document.getElementById('results-screen').style.display = 'block';
+    document.getElementById('place-title').textContent       = place;
+    document.getElementById('total-votes').textContent       = '—';
+    buildChart();
+    fetchSheetData(place);
+    clearInterval(pollTimer);
+    pollTimer = setInterval(() => fetchSheetData(place), POLL_MS);
+  });
+}
+
+/* ══════════════════════════════════════
+   GOOGLE SHEETS
+══════════════════════════════════════ */
+function fetchSheetData(place) {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(place)}`;
+  fetch(url, { cache: 'no-store' })
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+    .then(text => {
+      const m   = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)\s*;?\s*$/);
+      const obj = JSON.parse(m ? m[1] : text.replace(/^[^{]*/, '').replace(/[^}]*$/, ''));
+      parseSheet(obj);
+    })
+    .catch(e => console.warn('[Sheets]', place, e.message));
+}
+
+function parseSheet(resp) {
+  if (!resp?.table) return;
+  const { cols, rows } = resp.table;
+  if (!cols?.length || !rows?.length) return;
+
+  const colMap = {};
+  cols.forEach((c, i) => {
+    const pid = labelToPid((c.label || '').toLowerCase().trim());
+    if (pid && !(pid in colMap)) colMap[pid] = i;
+  });
+
+  let totRow = null;
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const r = rows[i];
+    if (!r?.c) continue;
+    const v = String(r.c[0]?.v ?? '').toLowerCase().trim();
+    if (v === 'totaal' || v.startsWith('totaal')) { totRow = r; break; }
+  }
+  if (!totRow) totRow = rows[rows.length - 1];
+  if (!totRow?.c) return;
+
+  const newD = {}; let newT = 0;
+  Object.entries(colMap).forEach(([pid, ci]) => {
+    const v    = parseFloat(totRow.c[ci]?.v) || 0;
+    newD[pid]  = (newD[pid] || 0) + v; newT += v;
+  });
+  if (!Object.keys(newD).length) {
+    PARTIES.forEach((p, i) => {
+      const v    = parseFloat(totRow.c[i + 1]?.v) || 0;
+      newD[p.id] = v; newT += v;
+    });
+  }
+
+  const wasZero = total26 === 0;
+  d26 = newD; total26 = newT;
+  updateBars();
+
+  /* Totaal stemmen optellen-animatie */
+  const tvEl = document.getElementById('total-votes');
+  if (newT > 0) countUp(tvEl, newT, 1200, true, '', '');
+  else tvEl.textContent = '—';
+}
+
+function labelToPid(lbl) {
+  for (const p of PARTIES)
+    for (const k of p.keys)
+      if (lbl === k || lbl.includes(k)) return p.id;
+  return null;
+}
+
+/* ══════════════════════════════════════
+   CHART OPBOUWEN
+══════════════════════════════════════ */
+function buildChart() {
+  const area = document.getElementById('chart-area');
+  area.innerHTML = '';
+  const dd21 = D21[curPlace] || {};
+  const t21  = dd21.t || 1;
+
+  colOrder.forEach((pid, orderIdx) => {
+    const party = PARTIES.find(p => p.id === pid);
+    if (!party) return;
+    const v21   = dd21[pid] || 0;
+    const pct21 = t21 > 0 ? v21 / t21 : 0;
+    const h21   = Math.round(pct21 * MAX_H);
+
+    const col = document.createElement('div');
+    col.className   = 'party-col';
+    col.dataset.pid = pid;
+    col.style.order = orderIdx;
+
+    /* Geen gekleurde strepen, geen jaar-labels onder staven */
+    col.innerHTML = `
+      <div class="bars-box">
+        <div class="bar bar-2021" id="b21-${pid}" style="height:${h21}px;background:${party.color}">
+          <span class="bar-pct">${pct21>0.001?(pct21*100).toFixed(1)+'%':''}</span>
+        </div>
+        <div class="bar bar-2026" id="b26-${pid}" style="height:5px;background:${party.color}">
+          <span class="bar-pct" id="lbl26-${pid}"></span>
+        </div>
+      </div>
+      <div class="diff-badge" id="diff-${pid}"></div>
+      <div class="pct-26-val" id="val26-${pid}"></div>
+      <div class="p-name">${party.name}</div>
+    `;
+    col.addEventListener('click', () => revealOne(pid));
+    area.appendChild(col);
+  });
+
+  if (total26 > 0) updateBars();
+}
+
+/* ── Update staafhoogten & data zonder reveal ── */
+function updateBars() {
+  if (!curPlace) return;
+  const dd21 = D21[curPlace] || {};
+  const t21  = dd21.t || 1;
+
+  PARTIES.forEach(({ id: pid }) => {
+    const b26  = document.getElementById(`b26-${pid}`);
+    if (!b26) return;
+    const v26   = d26[pid] || 0;
+    const v21   = dd21[pid] || 0;
+    const pct26 = total26 > 0 ? v26 / total26 : 0;
+    const pct21 = t21 > 0 ? v21 / t21 : 0;
+    const diff  = pct26 - pct21;
+
+    /* Staafhoogte */
+    b26.style.height = `${Math.max(5, Math.round(pct26 * MAX_H))}px`;
+
+    /* Label boven 2026-staaf */
+    const lbl = document.getElementById(`lbl26-${pid}`);
+    if (lbl) lbl.textContent = total26 > 0 && pct26 > 0.001 ? (pct26*100).toFixed(1)+'%' : '';
+
+    /* Sla doelwaarden op als data-attributen voor de klik-animatie */
+    const badge = document.getElementById(`diff-${pid}`);
+    if (badge && total26 > 0) {
+      const sign = diff > 5e-4 ? '+' : (diff < -5e-4 ? '-' : '');
+      badge.dataset.target    = Math.abs(diff * 100).toFixed(1);
+      badge.dataset.sign      = sign;
+      badge.dataset.className = 'diff-badge' + (diff > 5e-4 ? ' winst' : diff < -5e-4 ? ' verlies' : '');
+    }
+    const valEl = document.getElementById(`val26-${pid}`);
+    if (valEl && total26 > 0) {
+      valEl.dataset.target = (pct26 * 100).toFixed(1);
+    }
+
+    /* Als al onthuld: direct bijwerken */
+    if (revealed) revealOneSilent(pid);
+  });
+}
+
+/* ── Onthul één partij met animatie ── */
+function revealOne(pid) {
+  /* 2026-staaf tonen */
+  document.getElementById(`b26-${pid}`)?.classList.add('show');
+
+  /* Verschil-badge: kleur direct, getal telt op */
+  const badge = document.getElementById(`diff-${pid}`);
+  if (badge && badge.dataset.target) {
+    badge.className = badge.dataset.className + ' visible';
+    const target = parseFloat(badge.dataset.target);
+    const sign   = badge.dataset.sign || '';
+    countUp(badge, target, 900, false, '%', sign);
+  }
+
+  /* 2026-percentage telt op */
+  const valEl = document.getElementById(`val26-${pid}`);
+  if (valEl && valEl.dataset.target) {
+    valEl.classList.add('visible');
+    countUp(valEl, parseFloat(valEl.dataset.target), 900, false, '%', '');
+  }
+}
+
+/* Stille versie voor bij reeds-onthulde herordening */
+function revealOneSilent(pid) {
+  document.getElementById(`b26-${pid}`)?.classList.add('show');
+  const badge = document.getElementById(`diff-${pid}`);
+  if (badge && badge.dataset.target) {
+    badge.className = badge.dataset.className + ' visible';
+    const sign = badge.dataset.sign || '';
+    badge.textContent = sign + badge.dataset.target + '%';
+  }
+  const valEl = document.getElementById(`val26-${pid}`);
+  if (valEl && valEl.dataset.target) {
+    valEl.classList.add('visible');
+    valEl.textContent = valEl.dataset.target + '%';
+  }
+}
+
+function revealAll() {
+  revealed = true;
+  PARTIES.forEach(p => revealOne(p.id));
+}
+
+/* ══════════════════════════════════════
+   SORTEREN – FLIP-ANIMATIE 2 SECONDEN
+══════════════════════════════════════ */
+function toggleSort() {
+  const dd21 = D21[curPlace] || {};
+  const t21  = dd21.t || 1;
+
+  /* Posities vóór herordening */
+  const cols    = Array.from(document.querySelectorAll('.party-col'));
+  const beforeX = {};
+  cols.forEach(col => { beforeX[col.dataset.pid] = col.getBoundingClientRect().left; });
+
+  sortMode = !sortMode;
+  if (sortMode) {
+    colOrder = [...PARTIES].sort((a, b) => {
+      const va = total26 > 0 ? (d26[a.id]||0) : (dd21[a.id]||0)/t21;
+      const vb = total26 > 0 ? (d26[b.id]||0) : (dd21[b.id]||0)/t21;
+      return vb - va;
+    }).map(p => p.id);
+  } else {
+    colOrder = PARTIES.map(p => p.id);
+  }
+
+  /* Nieuwe CSS order toepassen */
+  colOrder.forEach((pid, i) => {
+    const col = document.querySelector(`.party-col[data-pid="${pid}"]`);
+    if (col) col.style.order = i;
+  });
+
+  /* Posities na herordening */
+  const afterX = {};
+  cols.forEach(col => { afterX[col.dataset.pid] = col.getBoundingClientRect().left; });
+
+  /* FLIP animatie */
+  cols.forEach(col => {
+    const pid = col.dataset.pid;
+    const dx  = (beforeX[pid] || 0) - (afterX[pid] || 0);
+    if (Math.abs(dx) < 0.5) return;
+    col.style.transition = 'none';
+    col.style.transform  = `translateX(${dx}px)`;
+    void col.offsetWidth;
+    col.style.transition = 'transform 2s cubic-bezier(0.22, 1, 0.36, 1)';
+    col.style.transform  = 'translateX(0)';
+    col.addEventListener('transitionend', () => {
+      col.style.transition = '';
+      col.style.transform  = '';
+    }, { once: true });
+  });
+}
+
+/* ══════════════════════════════════════
+   NAVIGATIE
+══════════════════════════════════════ */
+document.getElementById('btn-back').addEventListener('click', () => {
+  clearInterval(pollTimer);
+  dip(() => {
+    document.getElementById('results-screen').style.display = 'none';
+    document.getElementById('map-screen').style.display     = 'block';
+    curPlace = null;
+  });
+});
+document.getElementById('btn-all').addEventListener('click',  revealAll);
+document.getElementById('btn-sort').addEventListener('click', toggleSort);
+
+</script>
+</body>
+</html>

@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920">
+  <title>Gemeenteraadsverkiezingen 2026 – Land van Cuijk</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 100vw; height: 100vh;
+      overflow: hidden;
+      font-family: 'Montserrat', 'Arial', sans-serif;
+      background: #000;
+    }
+
+    /* ─── Viewport scale wrapper ─── */
+    #vp {
+      position: absolute;
+      top: 0; left: 0;
+      width: 1920px; height: 1080px;
+      transform-origin: top left;
+    }
+
+    /* ─── Achtergrond ─── */
+    .screen {
+      position: absolute; top: 0; left: 0;
+      width: 1920px; height: 1080px;
+      background: url('verkiezingen achtergrond.png') center/cover no-repeat;
+    }
+
+    /* ══════════════════════════════════════
+       KAARTSCHERM
+    ══════════════════════════════════════ */
+    #map-screen {}
+
+    #map-wrap {
+      position: absolute; top: 0; left: 0;
+      width: 1920px; height: 1080px;
+      pointer-events: none;
+    }
+    .map-img {
+      position: absolute; top: 0; left: 0;
+      width: 1920px; height: 1080px;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity 0.22s ease;
+    }
+    .map-img.show { opacity: 1; }
+
+    /* Hotspots */
+    .hotspot {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      color: #fff;
+      font-size: 13px; font-weight: 700;
+      text-align: center;
+      text-shadow: 0 1px 8px rgba(0,0,0,1), 0 0 4px rgba(0,0,0,1);
+      padding: 3px 7px;
+      border-radius: 5px;
+      background: rgba(0,0,0,0.28);
+      transition: background 0.18s, transform 0.18s;
+      z-index: 20;
+      white-space: nowrap;
+      letter-spacing: 0.03em;
+      user-select: none;
+    }
+    .hotspot:hover {
+      background: rgba(255,255,255,0.22);
+      transform: translate(-50%, -50%) scale(1.14);
+      text-shadow: 0 0 12px rgba(255,255,255,0.9), 0 1px 8px rgba(0,0,0,0.8);
+    }
+
+    /* Logo */
+    #map-logo {
+      position: absolute; bottom: 24px; right: 30px;
+      height: 72px; opacity: 0.88; z-index: 30;
+    }
+
+    /* ══════════════════════════════════════
+       UITSLAGSCHERM
+    ══════════════════════════════════════ */
+    #results-screen { display: none; }
+
+    #results-bg {
+      position: absolute; top: 0; left: 0;
+      width: 1920px; height: 1080px;
+      background: rgba(8, 10, 28, 0.80);
+      backdrop-filter: blur(8px);
+    }
+
+    /* Plaatsnaam */
+    #place-title {
+      position: absolute; top: 18px; left: 0; width: 1920px;
+      text-align: center;
+      font-size: 54px; font-weight: 800;
+      color: #fff;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      text-shadow: 0 2px 24px rgba(0,0,0,0.7);
+      z-index: 10; pointer-events: none;
+    }
+
+    /* Live dot */
+    #live-indicator {
+      position: absolute; top: 28px; right: 44px;
+      display: flex; align-items: center; gap: 9px;
+      font-size: 13px; font-weight: 700;
+      color: rgba(255,255,255,0.65);
+      letter-spacing: 0.1em;
+      z-index: 10;
+    }
+    #live-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: #22c55e;
+      animation: blink 1.8s ease-in-out infinite;
+    }
+    @keyframes blink {
+      0%,100% { opacity: 1; } 50% { opacity: 0.35; }
+    }
+
+    /* ─── CHART AREA ─── */
+    #chart-area {
+      position: absolute;
+      top: 90px; left: 30px;
+      width: 1860px; height: 870px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-evenly;
+      padding-bottom: 150px;
+      z-index: 5;
+    }
+
+    /* Partijkolom */
+    .party-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      flex: 1;
+      max-width: 182px;
+      transition: transform 0.18s;
+      position: relative;
+    }
+    .party-col:hover { transform: translateY(-4px); }
+
+    /* Partijkleur strip bovenaan */
+    .p-strip {
+      width: 148px; height: 5px;
+      border-radius: 3px;
+      margin-bottom: 6px;
+    }
+
+    /* Container voor de staven */
+    .bars-box {
+      width: 150px;
+      height: 490px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 8px;
+      position: relative;
+    }
+
+    /* Achtergrond lichtlijn (max hoogte referentie) */
+    .bars-box::before {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 10px; right: 10px;
+      height: 1px;
+      background: rgba(255,255,255,0.12);
+    }
+
+    /* Basisstaaf */
+    .bar {
+      width: 60px;
+      border-radius: 5px 5px 0 0;
+      position: relative;
+      min-height: 5px;
+      transition: height 0.75s cubic-bezier(.17,.67,0,1.02);
+    }
+
+    /* 2021 staaf */
+    .bar-2021 {
+      opacity: 0.55;
+      order: 1;
+    }
+
+    /* 2026 staaf */
+    .bar-2026 {
+      order: 2;
+      opacity: 0;
+      transition: height 0.75s cubic-bezier(.17,.67,0,1.02),
+                  opacity 0.45s ease;
+    }
+    .bar-2026.show { opacity: 1; }
+
+    /* Percentage label boven staaf */
+    .bar-pct {
+      position: absolute;
+      top: -26px; left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px; font-weight: 700;
+      color: rgba(255,255,255,0.95);
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    /* Jaar label naast staaf */
+    .bar-year {
+      position: absolute;
+      bottom: -20px; left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px; font-weight: 600;
+      color: rgba(255,255,255,0.45);
+      pointer-events: none;
+    }
+
+    /* Verschil badge */
+    .diff-badge {
+      margin-top: 10px;
+      width: 140px; min-height: 32px;
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 800;
+      color: #fff;
+      background: rgba(255,255,255,0.08);
+      letter-spacing: 0.04em;
+      transition: background 0.5s;
+    }
+    .diff-badge.winst   { background: #16a34a; }
+    .diff-badge.verlies { background: #b91c1c; }
+
+    /* 2026 percentage */
+    .pct-26-val {
+      margin-top: 7px;
+      font-size: 21px; font-weight: 800;
+      color: #fff;
+      letter-spacing: 0.04em;
+      min-height: 28px;
+    }
+
+    /* Partijnaam label */
+    .p-name {
+      margin-top: 5px;
+      font-size: 13px; font-weight: 700;
+      color: rgba(255,255,255,0.88);
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      line-height: 1.25;
+    }
+
+    /* ─── TOTAAL STEMMEN ─── */
+    #total-box {
+      position: absolute; bottom: 84px; right: 44px;
+      text-align: right; z-index: 10;
+    }
+    #total-label {
+      font-size: 13px; font-weight: 600;
+      color: rgba(255,255,255,0.55);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    #total-votes {
+      font-size: 52px; font-weight: 800;
+      color: #fff;
+      letter-spacing: 0.06em;
+      text-shadow: 0 0 28px rgba(255,255,255,0.35);
+    }
+
+    /* ─── LEGENDA ─── */
+    #legend {
+      position: absolute; bottom: 92px; left: 44px;
+      display: flex; gap: 20px; align-items: center; z-index: 10;
+    }
+    .leg-item {
+      display: flex; gap: 8px; align-items: center;
+      font-size: 13px; font-weight: 600;
+      color: rgba(255,255,255,0.65);
+    }
+    .leg-box {
+      width: 32px; height: 13px; border-radius: 3px;
+    }
+
+    /* ─── NAVIGATIEKNOPPEN ─── */
+    #nav-btns {
+      position: absolute; bottom: 18px; left: 50%;
+      transform: translateX(-50%);
+      display: flex; gap: 24px; z-index: 20;
+    }
+    .nbtn {
+      width: 64px; height: 64px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.38);
+      background: rgba(0,0,0,0.52);
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: background 0.18s, border-color 0.18s, transform 0.15s;
+      backdrop-filter: blur(6px);
+      font-size: 24px;
+      user-select: none;
+    }
+    .nbtn:hover {
+      background: rgba(255,255,255,0.18);
+      border-color: rgba(255,255,255,0.85);
+      transform: scale(1.10);
+    }
+    .nbtn svg { width: 28px; height: 28px; fill: #fff; }
+
+    /* ═══ OVERGANGSOVERLAY ═══ */
+    #dip-overlay {
+      position: absolute; top: 0; left: 0;
+      width: 1920px; height: 1080px;
+      background: #fff;
+      opacity: 0; pointer-events: none;
+      z-index: 9999;
+      transition: opacity 0.36s ease;
+    }
+    #dip-overlay.show { opacity: 1; pointer-events: all; }
+
+  </style>
+</head>
+<body>
+<div id="vp">
+
+  <!-- ══ OVERGANGSOVERLAY ══ -->
+  <div id="dip-overlay"></div>
+
+  <!-- ══════════════════════════════════════════
+       KAARTSCHERM
+  ══════════════════════════════════════════ -->
+  <div id="map-screen" class="screen">
+
+    <div id="map-wrap">
+      <img class="map-img show" id="map-base" src="images/img_1 Beers.png" alt="kaart">
+      <img class="map-img"      id="map-hl"   src=""                        alt="markering">
+    </div>
+
+    <!-- Hotspots – pixel-coördinaten op 1920×1080 canvas -->
+    <div class="hotspot" data-place="Beers"         style="left:844px;top:329px">Beers</div>
+    <div class="hotspot" data-place="Beugen"        style="left:1047px;top:486px">Beugen</div>
+    <div class="hotspot" data-place="Boxmeer"       style="left:1053px;top:557px">Boxmeer</div>
+    <div class="hotspot" data-place="Cuijk"         style="left:945px;top:319px">Cuijk</div>
+    <div class="hotspot" data-place="Escharen"      style="left:716px;top:281px">Escharen</div>
+    <div class="hotspot" data-place="Gassel"        style="left:784px;top:283px">Gassel</div>
+    <div class="hotspot" data-place="Grave"         style="left:693px;top:207px">Grave</div>
+    <div class="hotspot" data-place="Groeningen"    style="left:1136px;top:661px">Groeningen</div>
+    <div class="hotspot" data-place="Haps"          style="left:921px;top:425px">Haps</div>
+    <div class="hotspot" data-place="Holthees"      style="left:1163px;top:766px">Holthees</div>
+    <div class="hotspot" data-place="Katwijk"       style="left:935px;top:250px">Katwijk</div>
+    <div class="hotspot" data-place="Landhorst"     style="left:779px;top:627px">Landhorst</div>
+    <div class="hotspot" data-place="Langenboom"    style="left:696px;top:386px">Langenboom</div>
+    <div class="hotspot" data-place="Ledeacker"     style="left:918px;top:592px">Ledeacker</div>
+    <div class="hotspot" data-place="Linden"        style="left:847px;top:257px">Linden</div>
+    <div class="hotspot" data-place="Maashees"      style="left:1207px;top:792px">Maashees</div>
+    <div class="hotspot" data-place="Mill"          style="left:780px;top:411px">Mill</div>
+    <div class="hotspot" data-place="Oeffelt"       style="left:1044px;top:411px">Oeffelt</div>
+    <div class="hotspot" data-place="Oploo"         style="left:881px;top:712px">Oploo</div>
+    <div class="hotspot" data-place="Overloon"      style="left:1032px;top:760px">Overloon</div>
+    <div class="hotspot" data-place="Rijkevoort"    style="left:955px;top:520px">Rijkevoort</div>
+    <div class="hotspot" data-place="Sambeek"       style="left:1098px;top:618px">Sambeek</div>
+    <div class="hotspot" data-place="Sint Agatha"   style="left:1008px;top:381px">Sint Agatha</div>
+    <div class="hotspot" data-place="Sint Anthonis" style="left:919px;top:622px">Sint Anthonis</div>
+    <div class="hotspot" data-place="Sint Hubert"   style="left:832px;top:472px">Sint Hubert</div>
+    <div class="hotspot" data-place="Stevensbeek"   style="left:1017px;top:683px">Stevensbeek</div>
+    <div class="hotspot" data-place="Velp"          style="left:667px;top:241px">Velp</div>
+    <div class="hotspot" data-place="Vianen"        style="left:911px;top:346px">Vianen</div>
+    <div class="hotspot" data-place="Vierlingsbeek" style="left:1147px;top:729px">Vierlingsbeek</div>
+    <div class="hotspot" data-place="Vortum-Mullem" style="left:1108px;top:653px">Vortum-Mullem</div>
+    <div class="hotspot" data-place="Wanroij"       style="left:844px;top:542px">Wanroij</div>
+    <div class="hotspot" data-place="Westerbeek"    style="left:905px;top:758px">Westerbeek</div>
+    <div class="hotspot" data-place="Wilbertoord"   style="left:750px;top:530px">Wilbertoord</div>
+
+    <img id="map-logo" src="images/img_33 logo.png" alt="logo">
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       UITSLAGSCHERM
+  ══════════════════════════════════════════ -->
+  <div id="results-screen" class="screen">
+    <div id="results-bg"></div>
+
+    <div id="place-title">Plaatsnaam</div>
+
+    <div id="live-indicator">
+      <div id="live-dot"></div>
+      LIVE
+    </div>
+
+    <div id="chart-area"></div>
+
+    <!-- Legenda -->
+    <div id="legend">
+      <div class="leg-item">
+        <div class="leg-box" style="background:rgba(255,255,255,0.38);"></div>
+        <span>2021</span>
+      </div>
+      <div class="leg-item">
+        <div class="leg-box" style="background:rgba(255,255,255,0.90);"></div>
+        <span>2026</span>
+      </div>
+    </div>
+
+    <!-- Totaal stemmen (rechtsonder) -->
+    <div id="total-box">
+      <div id="total-label">Totaal stemmen</div>
+      <div id="total-votes">0000</div>
+    </div>
+
+    <!-- Navigatieknoppen (midden onder) -->
+    <div id="nav-btns">
+      <!-- Terug -->
+      <div class="nbtn" id="btn-back" title="Terug naar kaart">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      </div>
+      <!-- Toon alle 2026 -->
+      <div class="nbtn" id="btn-all" title="Toon alle 2026 uitslagen in één keer">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>
+      </div>
+      <!-- Sorteer -->
+      <div class="nbtn" id="btn-sort" title="Sorteer op aantal stemmen">
+        <svg viewBox="0 0 24 24">
+          <path d="M3 18h6v-2H3v2zm0-5h12v-2H3v2zm0-7v2h18V6H3zm15 9.41V13h-2v5.41l-1.71-1.71-1.41 1.41L16 21.83l3.12-3.12-1.41-1.41L16 18.83v-1.42z"/>
+          <path d="M17 6.17V11h2V6.17l1.71 1.71 1.41-1.41L19 3.34 15.88 6.46l1.41 1.42L17 6.17z"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /#vp -->
+
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════════════
+   VIEWPORT SCHALING
+═══════════════════════════════════════════════════ */
+(function scaleVP() {
+  const vp = document.getElementById('vp');
+  function resize() {
+    const sc  = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    const ox  = (window.innerWidth  - 1920 * sc) / 2;
+    const oy  = (window.innerHeight - 1080 * sc) / 2;
+    vp.style.transform = `translate(${ox}px,${oy}px) scale(${sc})`;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+})();
+
+/* ═══════════════════════════════════════════════════
+   CONFIGURATIE
+═══════════════════════════════════════════════════ */
+const SHEET_ID = '10ocFxapQPNdjpHilOZK69MTesSmmwb2_rEZWSKxtaTw';
+const POLL_MS  = 15000;   // 15 seconden
+const MAX_H    = 460;     // maximale staafhoogte in px
+
+/* Kaartafbeeldingen per plaatsnaam */
+const PLACE_IMGS = {
+  'Beers':         'images/img_1 Beers.png',
+  'Beugen':        'images/img_2 Beugen.png',
+  'Boxmeer':       'images/img_3 Boxmeer.png',
+  'Cuijk':         'images/img_4 Cuijk.png',
+  'Escharen':      'images/img_5 Escharen.png',
+  'Gassel':        'images/img_6 Gassel.png',
+  'Grave':         'images/img_7 Grave.png',
+  'Groeningen':    'images/img_8 Groeningen.png',
+  'Haps':          'images/img_9 Haps.png',
+  'Holthees':      'images/img_10 Holthees.png',
+  'Katwijk':       'images/img_11 Katwijk.png',
+  'Landhorst':     'images/img_12 Landhorst.png',
+  'Langenboom':    'images/img_13 Langeboom.png',
+  'Ledeacker':     'images/img_14 Ledeacker.png',
+  'Linden':        'images/img_15 Linden.png',
+  'Maashees':      'images/img_16 Maashees.png',
+  'Mill':          'images/img_17 Mill.png',
+  'Oeffelt':       'images/img_18 Oeffelt.png',
+  'Oploo':         'images/img_19 Oploo.png',
+  'Overloon':      'images/img_20 Overloon.png',
+  'Rijkevoort':    'images/img_21 Rijkevoort.png',
+  'Sambeek':       'images/img_22 Sambeek.png',
+  'Sint Agatha':   'images/img_23 Sint Agatha.png',
+  'Sint Anthonis': 'images/img_24 Sint Anthonis.png',
+  'Sint Hubert':   'images/img_25 Sint Hubert.png',
+  'Stevensbeek':   'images/img_26_Stevensbeek.png',
+  'Velp':          'images/img_26 Velp.png',
+  'Vianen':        'images/img_27 Vianen.png',
+  'Vierlingsbeek': 'images/img_28 Vierlingsbeek.png',
+  'Vortum-Mullem': 'images/img_29 Vortum-Mullem.png',
+  'Wanroij':       'images/img_30 Wanroij.png',
+  'Westerbeek':    'images/img_31 Westerbeek.png',
+  'Wilbertoord':   'images/img_32 Wilbertoord.png',
+};
+
+/* Partijen definitie */
+const PARTIES = [
+  { id:'CDA',        name:'CDA',          color:'#2CC74D', sheetKeys:['cda'] },
+  { id:'TeamLokaal', name:'Team Lokaal',  color:'#02A8F3', sheetKeys:['team lokaal','teamlokaal'] },
+  { id:'LiberaalLVC',name:'Liberaal LVC', color:'#7B56A4', sheetKeys:['liberaal','lvc'] },
+  { id:'GLPVDA',     name:'GL / PVDA',    color:'#C01414', sheetKeys:['groen','pvda','gl/pvda','gl-pvda','gl / pvda'] },
+  { id:'SP',         name:'SP',           color:'#E8161C', sheetKeys:['sp'] },
+  { id:'VVD',        name:'VVD',          color:'#FF5400', sheetKeys:['vvd'] },
+  { id:'D66',        name:'D66',          color:'#5BB89A', sheetKeys:['d66'] },
+  { id:'FVD',        name:'FvD',          color:'#A81814', sheetKeys:['forum','fvd','fvd ','democratie'] },
+  { id:'LBT',        name:'LBT',          color:'#E8C000', sheetKeys:['bart theunissen','lbt','lijst bart'] },
+  { id:'50Plus',     name:'50Plus',       color:'#84236C', sheetKeys:['50plus','50 plus','50+'] },
+];
+
+/* ─── 2021 uitslag per kern (alleen de 10 partijen die in 2026 meedoen) ─── */
+const D21 = {
+  "Beers":         {CDA:140,TeamLokaal:360,LiberaalLVC:102,GLPVDA:46,SP:17,VVD:30,D66:37,FVD:12,LBT:26,"50Plus":11,t:781},
+  "Beugen":        {CDA:242,TeamLokaal:301,LiberaalLVC:21,GLPVDA:55,SP:44,VVD:40,D66:29,FVD:9,LBT:0,"50Plus":10,t:751},
+  "Boxmeer":       {CDA:1864,TeamLokaal:612,LiberaalLVC:216,GLPVDA:590,SP:607,VVD:382,D66:363,FVD:150,LBT:26,"50Plus":92,t:4902},
+  "Cuijk":         {CDA:1043,TeamLokaal:928,LiberaalLVC:1055,GLPVDA:698,SP:476,VVD:373,D66:419,FVD:256,LBT:146,"50Plus":171,t:5565},
+  "Escharen":      {CDA:0,TeamLokaal:0,LiberaalLVC:0,GLPVDA:0,SP:0,VVD:0,D66:0,FVD:0,LBT:0,"50Plus":0,t:0},
+  "Gassel":        {CDA:167,TeamLokaal:41,LiberaalLVC:74,GLPVDA:45,SP:27,VVD:27,D66:46,FVD:18,LBT:10,"50Plus":8,t:463},
+  "Grave":         {CDA:529,TeamLokaal:134,LiberaalLVC:212,GLPVDA:378,SP:163,VVD:282,D66:248,FVD:154,LBT:2,"50Plus":44,t:2146},
+  "Groeningen":    {CDA:33,TeamLokaal:16,LiberaalLVC:98,GLPVDA:23,SP:13,VVD:14,D66:7,FVD:9,LBT:1,"50Plus":4,t:218},
+  "Haps":          {CDA:163,TeamLokaal:490,LiberaalLVC:563,GLPVDA:46,SP:26,VVD:24,D66:29,FVD:39,LBT:6,"50Plus":12,t:1398},
+  "Holthees":      {CDA:24,TeamLokaal:56,LiberaalLVC:65,GLPVDA:26,SP:25,VVD:11,D66:3,FVD:8,LBT:1,"50Plus":2,t:221},
+  "Katwijk":       {CDA:50,TeamLokaal:47,LiberaalLVC:26,GLPVDA:25,SP:9,VVD:15,D66:16,FVD:8,LBT:2,"50Plus":8,t:206},
+  "Landhorst":     {CDA:219,TeamLokaal:34,LiberaalLVC:7,GLPVDA:11,SP:8,VVD:8,D66:8,FVD:12,LBT:0,"50Plus":46,t:353},
+  "Langenboom":    {CDA:523,TeamLokaal:117,LiberaalLVC:46,GLPVDA:59,SP:45,VVD:84,D66:21,FVD:21,LBT:4,"50Plus":18,t:938},
+  "Ledeacker":     {CDA:315,TeamLokaal:51,LiberaalLVC:56,GLPVDA:67,SP:20,VVD:49,D66:48,FVD:24,LBT:5,"50Plus":8,t:643},
+  "Linden":        {CDA:11,TeamLokaal:58,LiberaalLVC:9,GLPVDA:18,SP:2,VVD:7,D66:39,FVD:5,LBT:6,"50Plus":3,t:158},
+  "Maashees":      {CDA:56,TeamLokaal:13,LiberaalLVC:219,GLPVDA:25,SP:32,VVD:6,D66:10,FVD:21,LBT:0,"50Plus":3,t:385},
+  "Mill":          {CDA:916,TeamLokaal:487,LiberaalLVC:504,GLPVDA:127,SP:109,VVD:163,D66:85,FVD:104,LBT:57,"50Plus":52,t:2604},
+  "Oeffelt":       {CDA:93,TeamLokaal:845,LiberaalLVC:43,GLPVDA:60,SP:31,VVD:28,D66:28,FVD:21,LBT:1,"50Plus":9,t:1159},
+  "Oploo":         {CDA:359,TeamLokaal:182,LiberaalLVC:9,GLPVDA:43,SP:18,VVD:79,D66:18,FVD:27,LBT:2,"50Plus":21,t:758},
+  "Overloon":      {CDA:458,TeamLokaal:517,LiberaalLVC:191,GLPVDA:125,SP:65,VVD:52,D66:33,FVD:57,LBT:4,"50Plus":26,t:1528},
+  "Rijkevoort":    {CDA:220,TeamLokaal:402,LiberaalLVC:23,GLPVDA:32,SP:28,VVD:31,D66:31,FVD:17,LBT:1,"50Plus":7,t:792},
+  "Sambeek":       {CDA:337,TeamLokaal:72,LiberaalLVC:63,GLPVDA:68,SP:64,VVD:58,D66:39,FVD:26,LBT:3,"50Plus":19,t:749},
+  "Sint Agatha":   {CDA:44,TeamLokaal:73,LiberaalLVC:26,GLPVDA:21,SP:8,VVD:18,D66:16,FVD:12,LBT:4,"50Plus":7,t:229},
+  "Sint Anthonis": {CDA:891,TeamLokaal:437,LiberaalLVC:66,GLPVDA:171,SP:90,VVD:134,D66:75,FVD:64,LBT:8,"50Plus":59,t:1995},
+  "Sint Hubert":   {CDA:216,TeamLokaal:166,LiberaalLVC:43,GLPVDA:45,SP:22,VVD:11,D66:11,FVD:25,LBT:3,"50Plus":13,t:555},
+  "Stevensbeek":   {CDA:0,TeamLokaal:37,LiberaalLVC:10,GLPVDA:20,SP:17,VVD:17,D66:8,FVD:19,LBT:2,"50Plus":5,t:135},
+  "Velp":          {CDA:187,TeamLokaal:14,LiberaalLVC:29,GLPVDA:26,SP:8,VVD:24,D66:50,FVD:9,LBT:2,"50Plus":2,t:351},
+  "Vianen":        {CDA:80,TeamLokaal:197,LiberaalLVC:75,GLPVDA:41,SP:34,VVD:18,D66:17,FVD:4,LBT:14,"50Plus":5,t:485},
+  "Vierlingsbeek": {CDA:163,TeamLokaal:78,LiberaalLVC:450,GLPVDA:90,SP:134,VVD:32,D66:41,FVD:68,LBT:7,"50Plus":20,t:1083},
+  "Vortum-Mullem": {CDA:246,TeamLokaal:21,LiberaalLVC:20,GLPVDA:29,SP:28,VVD:26,D66:6,FVD:12,LBT:2,"50Plus":3,t:393},
+  "Wanroij":       {CDA:588,TeamLokaal:263,LiberaalLVC:148,GLPVDA:37,SP:21,VVD:66,D66:36,FVD:37,LBT:6,"50Plus":30,t:1232},
+  "Westerbeek":    {CDA:174,TeamLokaal:24,LiberaalLVC:6,GLPVDA:15,SP:14,VVD:19,D66:26,FVD:5,LBT:2,"50Plus":13,t:298},
+  "Wilbertoord":   {CDA:0,TeamLokaal:63,LiberaalLVC:11,GLPVDA:12,SP:5,VVD:7,D66:15,FVD:10,LBT:2,"50Plus":3,t:128},
+};
+
+/* ═══════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════ */
+let curPlace     = null;
+let d26          = {};     // votes2026: { partyId: stemmen }
+let total26      = 0;
+let revealed     = false;
+let sortMode     = false;
+let colOrder     = PARTIES.map(p => p.id);
+let pollTimer    = null;
+
+/* ═══════════════════════════════════════════════════
+   KAART – HOVER & KLIK
+═══════════════════════════════════════════════════ */
+const mapBase = document.getElementById('map-base');
+const mapHl   = document.getElementById('map-hl');
+
+document.querySelectorAll('.hotspot').forEach(el => {
+  const place = el.dataset.place;
+
+  el.addEventListener('mouseenter', () => {
+    if (!PLACE_IMGS[place]) return;
+    mapHl.src = PLACE_IMGS[place];
+    mapHl.classList.add('show');
+    mapBase.classList.remove('show');
+  });
+
+  el.addEventListener('mouseleave', () => {
+    mapHl.classList.remove('show');
+    mapBase.classList.add('show');
+  });
+
+  el.addEventListener('click', () => openPlace(place));
+});
+
+/* ═══════════════════════════════════════════════════
+   OVERGANG (DIP TO WHITE)
+═══════════════════════════════════════════════════ */
+function dip(cb) {
+  const ov = document.getElementById('dip-overlay');
+  ov.classList.add('show');
+  setTimeout(() => {
+    cb();
+    setTimeout(() => ov.classList.remove('show'), 60);
+  }, 380);
+}
+
+/* ═══════════════════════════════════════════════════
+   OPEN PLAATS
+═══════════════════════════════════════════════════ */
+function openPlace(place) {
+  curPlace  = place;
+  revealed  = false;
+  sortMode  = false;
+  colOrder  = PARTIES.map(p => p.id);
+  d26       = {};
+  total26   = 0;
+
+  dip(() => {
+    document.getElementById('map-screen').style.display     = 'none';
+    document.getElementById('results-screen').style.display = 'block';
+    document.getElementById('place-title').textContent       = place;
+    document.getElementById('total-votes').textContent       = '—';
+
+    buildChart();
+    fetchSheetData(place);
+
+    clearInterval(pollTimer);
+    pollTimer = setInterval(() => fetchSheetData(place), POLL_MS);
+  });
+}
+
+/* ═══════════════════════════════════════════════════
+   GOOGLE SHEETS DATA OPHALEN
+═══════════════════════════════════════════════════ */
+function fetchSheetData(place) {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(place)}`;
+
+  fetch(url, { cache: 'no-store' })
+    .then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.text();
+    })
+    .then(text => {
+      // Strip JSONP wrapper: /*O_o*/ google.visualization.Query.setResponse({...});
+      const m = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)\s*;?\s*$/);
+      const jsonStr = m ? m[1] : text.replace(/^[^{]*/, '').replace(/[^}]*$/, '');
+      const resp = JSON.parse(jsonStr);
+      parseSheet(resp, place);
+    })
+    .catch(err => console.warn('[Sheets]', place, err.message));
+}
+
+function parseSheet(resp, place) {
+  if (!resp || !resp.table) return;
+  const { cols, rows } = resp.table;
+  if (!cols || !rows || !rows.length) return;
+
+  /* ─ Bouw kolom→partyId mapping ─ */
+  const colMap = {};  // index → partyId
+  cols.forEach((c, i) => {
+    const lbl = (c.label || '').toLowerCase().trim();
+    const pid = labelToPartyId(lbl);
+    if (pid && colMap[pid] === undefined) colMap[i] = pid;
+  });
+
+  /* ─ Zoek de "Totaal" rij ─ */
+  let totaalRow = null;
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const r = rows[i];
+    if (!r || !r.c) continue;
+    const first = (r.c[0] && r.c[0].v != null) ? String(r.c[0].v).toLowerCase().trim() : '';
+    if (first === 'totaal' || first.startsWith('totaal')) { totaalRow = r; break; }
+  }
+  if (!totaalRow) totaalRow = rows[rows.length - 1];
+  if (!totaalRow || !totaalRow.c) return;
+
+  /* ─ Extraheer stemmen ─ */
+  const newD = {};
+  let newTotal = 0;
+
+  Object.entries(colMap).forEach(([ci, pid]) => {
+    const cell = totaalRow.c[ci];
+    const v    = cell && cell.v != null ? (parseFloat(cell.v) || 0) : 0;
+    newD[pid]  = (newD[pid] || 0) + v;
+    newTotal  += v;
+  });
+
+  /* Fallback: als geen kolomnamen herkend, positie-gebaseerd */
+  if (Object.keys(newD).length === 0) {
+    PARTIES.forEach((p, i) => {
+      const cell = totaalRow.c[i + 1];
+      const v    = cell && cell.v != null ? (parseFloat(cell.v) || 0) : 0;
+      newD[p.id] = v;
+      newTotal  += v;
+    });
+  }
+
+  d26     = newD;
+  total26 = newTotal;
+
+  updateBars();
+
+  document.getElementById('total-votes').textContent =
+    newTotal > 0 ? newTotal.toLocaleString('nl-NL') : '—';
+}
+
+function labelToPartyId(lbl) {
+  for (const p of PARTIES) {
+    for (const key of p.sheetKeys) {
+      if (lbl === key || lbl.includes(key)) return p.id;
+    }
+  }
+  return null;
+}
+
+/* ═══════════════════════════════════════════════════
+   CHART OPBOUWEN
+═══════════════════════════════════════════════════ */
+function buildChart() {
+  const area  = document.getElementById('chart-area');
+  area.innerHTML = '';
+
+  const place = curPlace;
+  const dd21  = D21[place] || {};
+  const t21   = dd21.t || 1;
+
+  colOrder.forEach(pid => {
+    const party  = PARTIES.find(p => p.id === pid);
+    if (!party) return;
+
+    const v21   = dd21[pid] || 0;
+    const pct21 = t21 > 0 ? v21 / t21 : 0;
+    const h21   = Math.round(pct21 * MAX_H);
+
+    const col = document.createElement('div');
+    col.className    = 'party-col';
+    col.dataset.pid  = pid;
+
+    col.innerHTML = `
+      <div class="p-strip" style="background:${party.color}"></div>
+      <div class="bars-box" id="bb-${pid}">
+        <div class="bar bar-2021" id="b21-${pid}"
+             style="height:${h21}px;background:${party.color}">
+          <span class="bar-pct" id="lbl21-${pid}">${pct21 > 0.001 ? (pct21*100).toFixed(1)+'%' : ''}</span>
+          <span class="bar-year">2021</span>
+        </div>
+        <div class="bar bar-2026" id="b26-${pid}"
+             style="height:5px;background:${party.color}">
+          <span class="bar-pct" id="lbl26-${pid}"></span>
+          <span class="bar-year">2026</span>
+        </div>
+      </div>
+      <div class="diff-badge" id="diff-${pid}">—</div>
+      <div class="pct-26-val" id="val26-${pid}">—</div>
+      <div class="p-name">${party.name}</div>
+    `;
+
+    col.addEventListener('click', () => revealOne(pid));
+    area.appendChild(col);
+  });
+
+  /* Pas hoogte aan als er al 2026 data is */
+  if (total26 > 0) updateBars();
+}
+
+/* ─── Update staven met 2026 data ─── */
+function updateBars() {
+  if (!curPlace) return;
+  const dd21 = D21[curPlace] || {};
+  const t21  = dd21.t || 1;
+  const t26  = total26 || 1;
+
+  PARTIES.forEach(party => {
+    const pid = party.id;
+    const b26 = document.getElementById(`b26-${pid}`);
+    if (!b26) return;
+
+    const v26   = d26[pid] || 0;
+    const v21   = dd21[pid] || 0;
+    const pct26 = total26 > 0 ? v26 / t26 : 0;
+    const pct21 = t21 > 0 ? v21 / t21 : 0;
+    const diff  = pct26 - pct21;
+    const h26   = Math.round(pct26 * MAX_H);
+
+    b26.style.height = `${Math.max(5, h26)}px`;
+
+    const lbl26 = document.getElementById(`lbl26-${pid}`);
+    if (lbl26) lbl26.textContent = total26 > 0 && pct26 > 0.001 ? (pct26*100).toFixed(1)+'%' : '';
+
+    const valEl = document.getElementById(`val26-${pid}`);
+    if (valEl) valEl.textContent = total26 > 0 ? (pct26*100).toFixed(1)+'%' : '—';
+
+    const diffEl = document.getElementById(`diff-${pid}`);
+    if (diffEl) {
+      if (total26 > 0) {
+        const sign = diff > 0.0005 ? '+' : '';
+        diffEl.textContent = `${sign}${(diff*100).toFixed(1)}%`;
+        diffEl.className   = 'diff-badge';
+        if      (diff >  0.0005) diffEl.classList.add('winst');
+        else if (diff < -0.0005) diffEl.classList.add('verlies');
+      } else {
+        diffEl.textContent = '—';
+        diffEl.className   = 'diff-badge';
+      }
+    }
+
+    if (revealed) b26.classList.add('show');
+  });
+}
+
+/* ─── Onthul één partij op klik ─── */
+function revealOne(pid) {
+  const b = document.getElementById(`b26-${pid}`);
+  if (b) b.classList.add('show');
+}
+
+/* ─── Toon alle 2026 ─── */
+function revealAll() {
+  revealed = true;
+  document.querySelectorAll('.bar-2026').forEach(b => b.classList.add('show'));
+}
+
+/* ─── Toggle sortering ─── */
+function toggleSort() {
+  sortMode = !sortMode;
+
+  const dd21 = D21[curPlace] || {};
+  const t21  = dd21.t || 1;
+
+  if (sortMode) {
+    colOrder = [...PARTIES].sort((a, b) => {
+      const va = total26 > 0 ? (d26[a.id] || 0) : ((dd21[a.id] || 0) / t21);
+      const vb = total26 > 0 ? (d26[b.id] || 0) : ((dd21[b.id] || 0) / t21);
+      return vb - va;
+    }).map(p => p.id);
+  } else {
+    colOrder = PARTIES.map(p => p.id);
+  }
+
+  const wasRevealed = revealed;
+  buildChart();
+  if (total26 > 0) updateBars();
+  if (wasRevealed) revealAll();
+}
+
+/* ═══════════════════════════════════════════════════
+   NAVIGATIE
+═══════════════════════════════════════════════════ */
+document.getElementById('btn-back').addEventListener('click', () => {
+  clearInterval(pollTimer);
+  dip(() => {
+    document.getElementById('results-screen').style.display = 'none';
+    document.getElementById('map-screen').style.display     = 'block';
+    curPlace = null;
+  });
+});
+
+document.getElementById('btn-all').addEventListener('click', revealAll);
+document.getElementById('btn-sort').addEventListener('click', toggleSort);
+
+/* ═══════════════════════════════════════════════════
+   PRE-LOAD KAARTAFBEELDINGEN
+═══════════════════════════════════════════════════ */
+Object.values(PLACE_IMGS).forEach(src => { new Image().src = src; });
+
+</script>
+</body>
+</html>

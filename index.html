@@ -804,6 +804,7 @@ function updateBars() {
 /* ── Onthul één partij met animatie ── */
 function revealOne(pid) {
   const b26 = document.getElementById(`b26-${pid}`);
+  if (b26 && b26.classList.contains('show')) return;   // al zichtbaar, niet opnieuw animeren
   if (b26) {
     const targetH  = b26.style.height;
     const pct      = parseFloat(targetH) / MAX_H;          // 0–1 relatief aan MAX_H

@@ -174,11 +174,11 @@
       min-height: 5px;
       transition: height 0.75s cubic-bezier(.17,.67,0,1.02);
     }
-    .bar-2021 { opacity: 0.58; order: 1; }
+    .bar-2021 { opacity: 0.58; order: 1; transition: height 1.5s cubic-bezier(0.22, 1, 0.36, 1); }
     .bar-2026 {
       order: 2;
       opacity: 0;
-      transition: height 0.75s cubic-bezier(.17,.67,0,1.02),
+      transition: height 1.5s cubic-bezier(0.22, 1, 0.36, 1),
                   opacity 0.45s ease;
     }
     .bar-2026.show { opacity: 1; }
@@ -734,7 +734,7 @@ function buildChart() {
 
     col.innerHTML = `
       <div class="bars-box">
-        <div class="bar bar-2021" id="b21-${pid}" style="height:${h21}px;background:${party.color}">
+        <div class="bar bar-2021" id="b21-${pid}" data-h21="${h21}" style="height:0px;background:${party.color}">
           <span class="bar-pct">${pct21>0.001?(pct21*100).toFixed(1)+'%':''}</span>
         </div>
         <div class="bar bar-2026" id="b26-${pid}" style="height:5px;background:${party.color}">
@@ -751,6 +751,15 @@ function buildChart() {
     `;
     col.addEventListener('click', () => revealOne(pid));
     area.appendChild(col);
+  });
+
+  /* Animeer 2021-staven: van links naar rechts, 5 frames (~83ms) vertraging per kolom */
+  requestAnimationFrame(() => {
+    area.querySelectorAll('.bar-2021').forEach((bar, i) => {
+      setTimeout(() => {
+        bar.style.height = bar.dataset.h21 + 'px';
+      }, i * 83);
+    });
   });
 
   if (total26 > 0) updateBars();
@@ -794,7 +803,19 @@ function updateBars() {
 
 /* ── Onthul één partij met animatie ── */
 function revealOne(pid) {
-  document.getElementById(`b26-${pid}`)?.classList.add('show');
+  const b26 = document.getElementById(`b26-${pid}`);
+  if (b26) {
+    const targetH  = b26.style.height;
+    const pct      = parseFloat(targetH) / MAX_H;          // 0–1 relatief aan MAX_H
+    const dur      = Math.min(2.0, Math.max(0.4, (pct / 0.30) * 2.0)).toFixed(2);
+    b26.style.transition = 'none';
+    b26.style.height = '0px';
+    b26.classList.add('show');
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      b26.style.transition = `height ${dur}s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.45s ease`;
+      b26.style.height = targetH;
+    }));
+  }
 
   const badge = document.getElementById(`diff-${pid}`);
   if (badge && badge.dataset.target) {

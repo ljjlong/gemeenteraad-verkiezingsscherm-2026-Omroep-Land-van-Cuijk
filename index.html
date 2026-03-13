@@ -174,7 +174,7 @@
       min-height: 5px;
       transition: height 0.75s cubic-bezier(.17,.67,0,1.02);
     }
-    .bar-2021 { opacity: 0.58; order: 1; }
+    .bar-2021 { opacity: 0.58; order: 1; transition: height 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
     .bar-2026 {
       order: 2;
       opacity: 0;
@@ -734,7 +734,7 @@ function buildChart() {
 
     col.innerHTML = `
       <div class="bars-box">
-        <div class="bar bar-2021" id="b21-${pid}" style="height:${h21}px;background:${party.color}">
+        <div class="bar bar-2021" id="b21-${pid}" data-h21="${h21}" style="height:0px;background:${party.color}">
           <span class="bar-pct">${pct21>0.001?(pct21*100).toFixed(1)+'%':''}</span>
         </div>
         <div class="bar bar-2026" id="b26-${pid}" style="height:5px;background:${party.color}">
@@ -751,6 +751,15 @@ function buildChart() {
     `;
     col.addEventListener('click', () => revealOne(pid));
     area.appendChild(col);
+  });
+
+  /* Animeer 2021-staven: van links naar rechts, 5 frames (~83ms) vertraging per kolom */
+  requestAnimationFrame(() => {
+    area.querySelectorAll('.bar-2021').forEach((bar, i) => {
+      setTimeout(() => {
+        bar.style.height = bar.dataset.h21 + 'px';
+      }, i * 83);
+    });
   });
 
   if (total26 > 0) updateBars();

@@ -94,36 +94,13 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    /* Logo + totaal-knop rechtsonder (buiten #map-content, verschuift niet mee) */
-    #map-bottom-right {
-      position: absolute; bottom: 20px; right: 30px;
-      display: flex; flex-direction: column; align-items: center;
-      gap: 12px; z-index: 30;
-    }
-
+    /* Logo rechtsonder – klikbaar als knop voor totaaloverzicht */
     #map-logo {
-      height: 72px; opacity: 0.88;
+      position: absolute; bottom: 24px; right: 30px;
+      height: 72px; opacity: 0.88; z-index: 30;
+      transition: opacity 0.18s, transform 0.15s;
     }
-
-    #totaal-btn {
-      padding: 13px 26px;
-      background: rgba(255,255,255,0.70);
-      border: 2px solid rgba(0,42,2,0.45);
-      border-radius: 10px;
-      font-family: 'Montserrat', 'Arial', sans-serif;
-      font-size: 17px; font-weight: 700;
-      color: #002a02;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      backdrop-filter: blur(4px);
-      user-select: none;
-      transition: background 0.18s, border-color 0.18s;
-      white-space: nowrap;
-    }
-    #totaal-btn:hover {
-      background: rgba(255,255,255,0.94);
-      border-color: #002a02;
-    }
+    #map-logo:hover { opacity: 1; transform: scale(1.06); }
 
     /* ══════════════════════════════════════
        UITSLAGSCHERM
@@ -167,6 +144,8 @@
       align-items: center;
       flex: 1;
       max-width: 182px;
+      user-select: none;
+      -webkit-user-select: none;
     }
 
     .bars-box {
@@ -228,33 +207,35 @@
     .diff-badge.winst     { background: #16a34a; color: #fff; }
     .diff-badge.verlies   { background: #b91c1c; color: #fff; }
 
-    /*
-      Witte box voor partijnaam + percentage.
-      Vaste hoogte zodat alle kolommen (ook met 2-regel namen) gelijk uitlijnen.
-    */
-    .party-info-box {
+    /* Aparte witte box voor het percentage – vaste hoogte, altijd op gelijke hoogte */
+    .pct-box {
       margin-top: 8px;
       width: 148px;
-      height: 112px;
+      height: 40px;
       background: rgba(255,255,255,0.82);
-      border-radius: 10px;
-      padding: 10px 10px 10px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 5px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
     }
 
     .pct-26-val {
       font-size: 21px; font-weight: 800;
       color: #002a02;
       letter-spacing: 0.04em;
-      min-height: 26px;
       opacity: 0;
       transition: opacity 0.3s;
     }
     .pct-26-val.visible { opacity: 1; }
+
+    /* Aparte witte box voor de partijnaam – vaste hoogte voor 1- én 2-regel namen */
+    .name-box {
+      margin-top: 6px;
+      width: 148px;
+      height: 74px;
+      background: rgba(255,255,255,0.82);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      padding: 6px 10px;
+    }
 
     .p-name {
       font-size: 23px; font-weight: 700;
@@ -406,11 +387,8 @@
       <div class="hotspot" data-place="Wilbertoord"   style="left:687px;top:527px"></div>
     </div>
 
-    <!-- Logo + totaalknop rechtsonder (buiten #map-content, vaste positie) -->
-    <div id="map-bottom-right">
-      <img id="map-logo" src="images/img_33 logo.png" alt="logo">
-      <div id="totaal-btn">Totaaloverzicht</div>
-    </div>
+    <!-- Logo rechtsonder – klik opent totaaloverzicht -->
+    <img id="map-logo" src="images/img_33 logo.png" alt="logo">
 
   </div>
 
@@ -571,7 +549,7 @@ document.querySelectorAll('.hotspot').forEach(el => {
   el.addEventListener('click', () => openPlace(el.dataset.place));
 });
 
-document.getElementById('totaal-btn').addEventListener('click', openTotaal);
+document.getElementById('map-logo').addEventListener('click', openTotaal);
 
 /* ══════════════════════════════════════
    OVERGANG
@@ -760,8 +738,10 @@ function buildChart() {
         </div>
       </div>
       <div class="diff-badge" id="diff-${pid}"></div>
-      <div class="party-info-box">
+      <div class="pct-box">
         <div class="pct-26-val" id="val26-${pid}"></div>
+      </div>
+      <div class="name-box">
         <div class="p-name">${party.name}</div>
       </div>
     `;

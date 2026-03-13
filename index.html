@@ -228,6 +228,9 @@
       text-transform: uppercase;
       letter-spacing: 0.04em;
       line-height: 1.25;
+      /* Vaste hoogte voor 2 regels zodat alle kolommen gelijk uitlijnen */
+      height: 60px;
+      display: flex; align-items: flex-start; justify-content: center;
       text-shadow: 0 0 8px rgba(255,255,255,0.9), 0 0 4px rgba(255,255,255,0.6);
     }
 
@@ -609,14 +612,9 @@ function parseSheet(resp) {
   d26 = parsed.d; total26 = parsed.t;
   updateBars();
 
-  /* Totaal stemmen: reset naar 0, dan optel-animatie */
+  /* Totaal stemmen: direct weergeven */
   const tvEl = document.getElementById('total-votes');
-  if (parsed.t > 0) {
-    tvEl.textContent = '0';
-    countUp(tvEl, parsed.t, 1200, true, '', '');
-  } else {
-    tvEl.textContent = '—';
-  }
+  tvEl.textContent = parsed.t > 0 ? parsed.t.toLocaleString('nl-NL') : '—';
 }
 
 /* ══════════════════════════════════════
@@ -651,12 +649,7 @@ function fetchAllSheets() {
           d26 = aggD; total26 = aggT;
           updateBars();
           const tvEl = document.getElementById('total-votes');
-          if (aggT > 0) {
-            tvEl.textContent = '0';
-            countUp(tvEl, aggT, 1200, true, '', '');
-          } else {
-            tvEl.textContent = '—';
-          }
+          tvEl.textContent = aggT > 0 ? aggT.toLocaleString('nl-NL') : '—';
         }
       });
   });

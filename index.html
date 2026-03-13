@@ -805,12 +805,14 @@ function updateBars() {
 function revealOne(pid) {
   const b26 = document.getElementById(`b26-${pid}`);
   if (b26) {
-    const targetH = b26.style.height;
+    const targetH  = b26.style.height;
+    const pct      = parseFloat(targetH) / MAX_H;          // 0–1 relatief aan MAX_H
+    const dur      = Math.min(2.0, Math.max(0.4, (pct / 0.30) * 2.0)).toFixed(2);
     b26.style.transition = 'none';
     b26.style.height = '0px';
     b26.classList.add('show');
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      b26.style.transition = '';
+      b26.style.transition = `height ${dur}s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.45s ease`;
       b26.style.height = targetH;
     }));
   }

@@ -252,28 +252,12 @@
     #total-box {
       position: absolute; bottom: 84px; right: 44px;
       text-align: right; z-index: 10;
-    }
-    #total-label {
-      font-size: 13px; font-weight: 600;
+      font-size: 30px; font-weight: 700;
       color: #002a02;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      text-shadow: 0 0 8px rgba(255,255,255,0.9);
+      letter-spacing: 0.04em;
+      text-shadow: 0 0 12px rgba(255,255,255,0.9), 0 0 6px rgba(255,255,255,0.7);
+      line-height: 1.4;
     }
-    #total-votes {
-      font-size: 52px; font-weight: 800;
-      color: #002a02;
-      letter-spacing: 0.06em;
-      text-shadow: 0 0 20px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.7);
-    }
-    #total-21-label, #total-diff-label {
-      font-size: 15px; font-weight: 600;
-      color: #002a02;
-      letter-spacing: 0.05em;
-      text-shadow: 0 0 8px rgba(255,255,255,0.9);
-      margin-top: 2px;
-    }
-    #total-diff { font-weight: 800; }
 
     #nav-btns {
       position: absolute; bottom: 18px; left: 50%;
@@ -412,10 +396,9 @@
     <div id="chart-area"></div>
 
     <div id="total-box">
-      <div id="total-label">Totaal stemmen 2026</div>
-      <div id="total-votes">—</div>
-      <div id="total-21-label">2021: <span id="total-21">—</span></div>
-      <div id="total-diff-label">Verschil: <span id="total-diff">—</span></div>
+      <div>2026: <span id="total-votes">—</span></div>
+      <div>2021: <span id="total-21">—</span></div>
+      <div>Verschil: <span id="total-diff">—</span></div>
     </div>
 
     <div id="nav-btns">

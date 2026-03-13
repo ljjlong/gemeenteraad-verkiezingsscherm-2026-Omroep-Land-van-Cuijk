@@ -132,7 +132,7 @@
     /* ─── CHART AREA ─── */
     #chart-area {
       position: absolute;
-      top: 135px; left: 30px;
+      top: 85px; left: 30px;
       width: 1860px; height: 870px;
       display: flex;
       align-items: flex-end;
@@ -266,6 +266,14 @@
       letter-spacing: 0.06em;
       text-shadow: 0 0 20px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.7);
     }
+    #total-21-label, #total-diff-label {
+      font-size: 15px; font-weight: 600;
+      color: #002a02;
+      letter-spacing: 0.05em;
+      text-shadow: 0 0 8px rgba(255,255,255,0.9);
+      margin-top: 2px;
+    }
+    #total-diff { font-weight: 800; }
 
     #nav-btns {
       position: absolute; bottom: 18px; left: 50%;
@@ -404,8 +412,10 @@
     <div id="chart-area"></div>
 
     <div id="total-box">
-      <div id="total-label">Totaal stemmen</div>
+      <div id="total-label">Totaal stemmen 2026</div>
       <div id="total-votes">—</div>
+      <div id="total-21-label">2021: <span id="total-21">—</span></div>
+      <div id="total-diff-label">Verschil: <span id="total-diff">—</span></div>
     </div>
 
     <div id="nav-btns">
@@ -577,6 +587,7 @@ function openPlace(place) {
     document.getElementById('results-screen').style.display = 'block';
     document.getElementById('place-title').textContent       = place;
     document.getElementById('total-votes').textContent       = '—';
+    document.getElementById('total-diff').textContent        = '—';
     buildChart();
     fetchSheetData(place);
     clearInterval(pollTimer);
@@ -597,6 +608,7 @@ function openTotaal() {
     document.getElementById('results-screen').style.display = 'block';
     document.getElementById('place-title').textContent       = 'Land van Cuijk';
     document.getElementById('total-votes').textContent       = '—';
+    document.getElementById('total-diff').textContent        = '—';
     buildChart();
     fetchAllSheets();
     clearInterval(pollTimer);
@@ -626,9 +638,7 @@ function parseSheet(resp) {
 
   d26 = parsed.d; total26 = parsed.t;
   updateBars();
-
-  const tvEl = document.getElementById('total-votes');
-  tvEl.textContent = parsed.t > 0 ? parsed.t.toLocaleString('nl-NL') : '—';
+  updateTotalBox(parsed.t);
 }
 
 /* ══════════════════════════════════════
@@ -662,11 +672,23 @@ function fetchAllSheets() {
         if (pending === 0) {
           d26 = aggD; total26 = aggT;
           updateBars();
-          const tvEl = document.getElementById('total-votes');
-          tvEl.textContent = aggT > 0 ? aggT.toLocaleString('nl-NL') : '—';
+          updateTotalBox(aggT);
         }
       });
   });
+}
+
+function updateTotalBox(votes26) {
+  document.getElementById('total-votes').textContent = votes26 > 0 ? votes26.toLocaleString('nl-NL') : '—';
+  const dd21   = curPlace === '__totaal__' ? D21_TOTAAL : (D21[curPlace] || {});
+  const t21raw = dd21.t || 0;
+  if (votes26 > 0 && t21raw > 0) {
+    const diff = votes26 - t21raw;
+    const sign = diff > 0 ? '+' : '';
+    document.getElementById('total-diff').textContent = sign + diff.toLocaleString('nl-NL');
+  } else {
+    document.getElementById('total-diff').textContent = '—';
+  }
 }
 
 function parseSheetToData(resp) {
@@ -717,8 +739,11 @@ function labelToPid(lbl) {
 function buildChart() {
   const area = document.getElementById('chart-area');
   area.innerHTML = '';
-  const dd21 = curPlace === '__totaal__' ? D21_TOTAAL : (D21[curPlace] || {});
-  const t21  = dd21.t || 1;
+  const dd21   = curPlace === '__totaal__' ? D21_TOTAAL : (D21[curPlace] || {});
+  const t21raw = dd21.t || 0;
+  const t21    = t21raw || 1;
+  document.getElementById('total-21').textContent =
+    t21raw > 0 ? t21raw.toLocaleString('nl-NL') : '—';
 
   colOrder.forEach((pid, orderIdx) => {
     const party = PARTIES.find(p => p.id === pid);
@@ -742,10 +767,10 @@ function buildChart() {
         </div>
       </div>
       <div class="diff-badge" id="diff-${pid}"></div>
-      <div class="pct-box">
+      <div class="pct-box" style="outline:1px solid #002a02">
         <div class="pct-26-val" id="val26-${pid}"></div>
       </div>
-      <div class="name-box">
+      <div class="name-box" style="outline:1px solid #002a02">
         <div class="p-name">${party.name}</div>
       </div>
     `;
@@ -804,6 +829,7 @@ function updateBars() {
 /* ── Onthul één partij met animatie ── */
 function revealOne(pid) {
   const b26 = document.getElementById(`b26-${pid}`);
+  if (b26 && b26.classList.contains('show')) return;   // al zichtbaar, niet opnieuw animeren
   if (b26) {
     const targetH  = b26.style.height;
     const pct      = parseFloat(targetH) / MAX_H;          // 0–1 relatief aan MAX_H

@@ -174,11 +174,11 @@
       min-height: 5px;
       transition: height 0.75s cubic-bezier(.17,.67,0,1.02);
     }
-    .bar-2021 { opacity: 0.58; order: 1; transition: height 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+    .bar-2021 { opacity: 0.58; order: 1; transition: height 1.5s cubic-bezier(0.22, 1, 0.36, 1); }
     .bar-2026 {
       order: 2;
       opacity: 0;
-      transition: height 0.75s cubic-bezier(.17,.67,0,1.02),
+      transition: height 1.5s cubic-bezier(0.22, 1, 0.36, 1),
                   opacity 0.45s ease;
     }
     .bar-2026.show { opacity: 1; }
@@ -803,7 +803,17 @@ function updateBars() {
 
 /* ── Onthul één partij met animatie ── */
 function revealOne(pid) {
-  document.getElementById(`b26-${pid}`)?.classList.add('show');
+  const b26 = document.getElementById(`b26-${pid}`);
+  if (b26) {
+    const targetH = b26.style.height;
+    b26.style.transition = 'none';
+    b26.style.height = '0px';
+    b26.classList.add('show');
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      b26.style.transition = '';
+      b26.style.height = targetH;
+    }));
+  }
 
   const badge = document.getElementById(`diff-${pid}`);
   if (badge && badge.dataset.target) {

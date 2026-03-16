@@ -86,15 +86,7 @@
 
     /* Klikgebieden – geen visuele feedback */
     .hotspot {
-      position: absolute;
-      transform: translate(-50%, -50%);
-      width: 65px; height: 65px;
-      z-index: 20;
-      background: transparent;
-      border: none;
-      outline: none;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
+      display: none;
     }
 
     /* Logo rechtsonder – klikbaar als knop voor totaaloverzicht */
@@ -542,11 +534,40 @@ function countUp(el, target, duration, isInt, suffix, sign) {
 }
 
 /* ══════════════════════════════════════
-   KAART – KLIK
+   KAART – PIXEL-KLIKDETECTIE
 ══════════════════════════════════════ */
-document.querySelectorAll('.hotspot').forEach(el => {
-  el.addEventListener('click', () => openPlace(el.dataset.place));
-});
+const _placeCtx = new Map();
+
+function initMapHitDetection() {
+  document.querySelectorAll('#map-wrap .map-img').forEach(img => {
+    const place = img.dataset.place;
+    const canvas = document.createElement('canvas');
+    canvas.width = 1920; canvas.height = 1080;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const draw = () => { try { ctx.drawImage(img, 0, 0, 1920, 1080); _placeCtx.set(place, ctx); } catch(e) {} };
+    if (img.complete && img.naturalWidth) draw();
+    else img.addEventListener('load', draw);
+  });
+
+  const wrap = document.getElementById('map-wrap');
+  wrap.style.pointerEvents = 'auto';
+  wrap.addEventListener('click', e => {
+    if (document.getElementById('map-screen').style.display === 'none') return;
+    const rect = wrap.getBoundingClientRect();
+    const imgX = Math.floor((e.clientX - rect.left) / rect.width  * 1920);
+    const imgY = Math.floor((e.clientY - rect.top)  / rect.height * 1080);
+    for (const [place, ctx] of _placeCtx) {
+      try {
+        if (ctx.getImageData(imgX, imgY, 1, 1).data[3] > 10) {
+          openPlace(place);
+          return;
+        }
+      } catch(e) {}
+    }
+  });
+}
+
+initMapHitDetection();
 
 document.getElementById('map-logo').addEventListener('click', openTotaal);
 

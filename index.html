@@ -163,7 +163,7 @@
       width: 60px;
       border-radius: 5px 5px 0 0;
       position: relative;
-      min-height: 5px;
+      min-height: 0;
       transition: height 0.75s cubic-bezier(.17,.67,0,1.02);
     }
     .bar-2021 { opacity: 0.58; order: 1; transition: height 1.5s cubic-bezier(0.22, 1, 0.36, 1); }
@@ -811,7 +811,7 @@ function updateBars() {
     const pct21 = t21 > 0 ? v21 / t21 : 0;
     const diff  = pct26 - pct21;
 
-    b26.style.height = `${Math.max(5, Math.round(pct26 * MAX_H))}px`;
+    b26.style.height = `${Math.round(pct26 * MAX_H)}px`;
 
     const lbl = document.getElementById(`lbl26-${pid}`);
     if (lbl) lbl.textContent = total26 > 0 && pct26 > 0.001 ? (pct26*100).toFixed(1)+'%' : '';

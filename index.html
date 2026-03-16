@@ -828,7 +828,7 @@ function updateBars() {
       valEl.dataset.target = (pct26 * 100).toFixed(1);
     }
 
-    if (revealed) revealOneSilent(pid);
+    if (revealed || b26.classList.contains('show')) revealOneSilent(pid);
   });
 }
 

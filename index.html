@@ -822,13 +822,20 @@ function updateBars() {
       badge.dataset.target    = Math.abs(diff * 100).toFixed(1);
       badge.dataset.sign      = sign;
       badge.dataset.className = 'diff-badge' + (diff > 5e-4 ? ' winst' : diff < -5e-4 ? ' verlies' : '');
+      if (badge.classList.contains('visible')) {
+        badge.className = badge.dataset.className + ' visible';
+        badge.textContent = sign + badge.dataset.target + '%';
+      }
     }
     const valEl = document.getElementById(`val26-${pid}`);
     if (valEl && total26 > 0) {
       valEl.dataset.target = (pct26 * 100).toFixed(1);
+      if (valEl.classList.contains('visible')) {
+        valEl.textContent = valEl.dataset.target + '%';
+      }
     }
 
-    if (revealed || b26.classList.contains('show')) revealOneSilent(pid);
+    if (revealed) revealOneSilent(pid);
   });
 }
 

@@ -288,15 +288,18 @@
     /* ── Remote koppelcode ── */
     #pair-info {
       position: absolute; bottom: 22px; left: 44px;
-      z-index: 30; pointer-events: none;
-      font-size: 14px; font-weight: 700;
+      z-index: 30;
+      font-size: 13px; font-weight: 600;
       color: #002a02;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.04em;
+      line-height: 1.6;
       text-shadow: 0 0 10px rgba(255,255,255,0.95), 0 0 4px rgba(255,255,255,0.8);
       opacity: 0;
       transition: opacity 0.4s;
+      user-select: text;
     }
     #pair-info.ready { opacity: 1; }
+    #pair-info strong { font-size: 15px; font-weight: 800; letter-spacing: 0.1em; }
 
   </style>
 </head>
@@ -625,9 +628,12 @@ function initRemoteWs() {
     _remoteWs.send(JSON.stringify({ type: 'register', role: 'dashboard' }));
     fetch('/pair-code')
       .then(r => r.json())
-      .then(({ code }) => {
+      .then(({ code, remoteUrl }) => {
         const el = document.getElementById('pair-info');
-        if (el) { el.textContent = `Remote code: ${code}`; el.classList.add('ready'); }
+        if (el) {
+          el.innerHTML = `Remote: ${remoteUrl}<br>Code: <strong>${code}</strong>`;
+          el.classList.add('ready');
+        }
       })
       .catch(() => {});
     sendState();

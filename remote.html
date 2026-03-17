@@ -179,10 +179,25 @@
 <!-- ══ KOPPELSCHERM ══ -->
 <div id="pair-screen" class="screen active">
   <h2>Verbinden</h2>
-  <p>Voer de 6-tekens koppelcode in die<br>op het dashboard wordt weergegeven.</p>
-  <div id="code-input">
-    <input id="pair-code-input" type="text" maxlength="6" placeholder="XXXXXX" autocomplete="off" autocorrect="off" spellcheck="false">
+  <p>Vul het serveradres in (zichtbaar op het dashboard)<br>en de 6-tekens koppelcode.</p>
+
+  <div style="margin-bottom:14px">
+    <label style="display:block;font-size:12px;color:#86efac;margin-bottom:6px;letter-spacing:0.08em;text-transform:uppercase">Serveradres</label>
+    <div id="code-input">
+      <input id="server-input" type="text" placeholder="192.168.x.x:8080"
+             autocomplete="off" autocorrect="off" spellcheck="false"
+             style="font-size:18px;letter-spacing:0.06em;max-width:280px">
+    </div>
   </div>
+
+  <div style="margin-bottom:20px">
+    <label style="display:block;font-size:12px;color:#86efac;margin-bottom:6px;letter-spacing:0.08em;text-transform:uppercase">Koppelcode</label>
+    <div id="code-input">
+      <input id="pair-code-input" type="text" maxlength="6" placeholder="XXXXXX"
+             autocomplete="off" autocorrect="off" spellcheck="false">
+    </div>
+  </div>
+
   <div style="display:flex;justify-content:center">
     <button id="btn-pair" class="btn btn-primary">Verbinden</button>
   </div>
@@ -276,11 +291,27 @@ document.getElementById('rc-reveal-all').addEventListener('click', () => send({ 
 document.getElementById('rc-sort').addEventListener('click',       () => send({ type:'command', action:'sort' }));
 
 /* ══════════════════════════════════════
+   SERVERADRES DETECTIE
+══════════════════════════════════════ */
+function getDefaultServer() {
+  // 1. URL-parameter ?server=192.168.x.x:8080 (werkt bij externe hosting)
+  const param = new URLSearchParams(location.search).get('server');
+  if (param) return param.replace(/^wss?:\/\//, '');
+  // 2. Zelfde origin als de pagina (lokale Node.js server)
+  if (location.host) return location.host;
+  return '';
+}
+
+const serverInput = document.getElementById('server-input');
+serverInput.value = sessionStorage.getItem('wsHost') || getDefaultServer();
+
+/* ══════════════════════════════════════
    WEBSOCKET
 ══════════════════════════════════════ */
-let ws       = null;
-let paired   = false;
-let retryMs  = 1000;
+let ws      = null;
+let wsHost  = '';
+let paired  = false;
+let retryMs = 1000;
 
 const statusDot  = document.getElementById('status-dot');
 const statusText = document.getElementById('status-text');
@@ -295,7 +326,8 @@ function send(msg) {
 }
 
 function connect() {
-  ws = new WebSocket(`ws://${location.host}/ws`);
+  if (!wsHost) return;
+  ws = new WebSocket(`ws://${wsHost}/ws`);
 
   ws.onopen = () => {
     setStatus(false, 'Verbinden…');
@@ -322,9 +354,7 @@ function connect() {
       document.getElementById('pair-error').textContent = msg.message;
       return;
     }
-    if (msg.type === 'state') {
-      applyState(msg);
-    }
+    if (msg.type === 'state') applyState(msg);
   };
 
   ws.onclose = () => {
@@ -337,22 +367,45 @@ function connect() {
 }
 
 function register(code) {
-  send({ type:'register', role:'remote', code: code.toUpperCase() });
+  send({ type: 'register', role: 'remote', code: code.toUpperCase() });
 }
 
 /* ── Pairing ── */
 document.getElementById('btn-pair').addEventListener('click', () => {
+  const host = serverInput.value.trim().replace(/^wss?:\/\//, '').replace(/\/$/, '');
   const code = document.getElementById('pair-code-input').value.trim().toUpperCase();
+
+  if (!host) {
+    document.getElementById('pair-error').textContent = 'Voer het serveradres in.';
+    return;
+  }
   if (code.length < 6) {
     document.getElementById('pair-error').textContent = 'Voer een geldige 6-tekens code in.';
     return;
   }
+
+  sessionStorage.setItem('wsHost', host);
   sessionStorage.setItem('pairCode', code);
-  register(code);
+
+  // (Her)verbind met het opgegeven serveradres
+  if (ws) ws.onclose = () => {};  // voorkom auto-reconnect met oud adres
+  if (ws && ws.readyState < 2) ws.close();
+  wsHost = host;
+  connect();
+  // registreer zodra verbinding open is (onopen stuurt register)
+  const waitAndRegister = setInterval(() => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      register(code);
+      clearInterval(waitAndRegister);
+    }
+  }, 100);
 });
 
 document.getElementById('pair-code-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('btn-pair').click();
+});
+serverInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('pair-code-input').focus();
 });
 
 /* ══════════════════════════════════════
@@ -382,7 +435,11 @@ function applyState(state) {
 /* ══════════════════════════════════════
    START
 ══════════════════════════════════════ */
-connect();
+/* ══════════════════════════════════════
+   START – verbind meteen als serveradres bekend
+══════════════════════════════════════ */
+wsHost = serverInput.value;
+if (wsHost) connect();
 </script>
 </body>
 </html>

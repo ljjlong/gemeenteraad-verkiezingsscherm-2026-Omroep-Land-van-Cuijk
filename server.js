@@ -21,6 +21,14 @@ const MIME = {
   '.svg':  'image/svg+xml',
 };
 
+/* ── Lokaal IP-adres ── */
+function getLocalIP() {
+  const found = Object.values(os.networkInterfaces())
+    .flat()
+    .find(i => i.family === 'IPv4' && !i.internal);
+  return found ? found.address : '127.0.0.1';
+}
+
 /* ══════════════════════════════════════
    HTTP – STATISCHE BESTANDEN
 ══════════════════════════════════════ */
@@ -28,8 +36,13 @@ const server = http.createServer((req, res) => {
   const url = req.url.split('?')[0];
 
   if (url === '/pair-code') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ code: PAIR_CODE }));
+    const localIP  = getLocalIP();
+    const remoteUrl = `http://${localIP}:${PORT}/remote`;
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+    });
+    res.end(JSON.stringify({ code: PAIR_CODE, remoteUrl, wsHost: `${localIP}:${PORT}` }));
     return;
   }
 
@@ -118,17 +131,14 @@ wss.on('connection', ws => {
    START
 ══════════════════════════════════════ */
 server.listen(PORT, '0.0.0.0', () => {
-  const ips = Object.values(os.networkInterfaces())
-    .flat()
-    .filter(i => i.family === 'IPv4' && !i.internal)
-    .map(i => i.address);
+  const localIP = getLocalIP();
 
-  console.log('\n╔══════════════════════════════════════╗');
-  console.log(`║  Koppelcode:  ${PAIR_CODE}               ║`);
-  console.log('╚══════════════════════════════════════╝');
-  console.log('\nDashboard:');
-  ips.forEach(ip => console.log(`  http://${ip}:${PORT}/`));
-  console.log('\nRemote:');
-  ips.forEach(ip => console.log(`  http://${ip}:${PORT}/remote`));
+  console.log('\n╔══════════════════════════════════════════════════════════╗');
+  console.log(`║  Koppelcode : ${PAIR_CODE}                                   ║`);
+  console.log('╚══════════════════════════════════════════════════════════╝');
+  console.log(`\nDashboard  : http://${localIP}:${PORT}/`);
+  console.log(`Remote     : http://${localIP}:${PORT}/remote`);
+  console.log(`\nRemote via externe hosting (zelfde netwerk, HTTP):`);
+  console.log(`  remote.html?server=${localIP}:${PORT}`);
   console.log('');
 });

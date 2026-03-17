@@ -4,6 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <title>Remote – Verkiezingsscherm 2026</title>
+  <!-- Firebase SDK – alleen geladen als firebase-config.js aanwezig is -->
+  <script src="firebase-config.js" onerror="window.FIREBASE_CONFIG=null"></script>
+  <script>
+    if (window.FIREBASE_CONFIG) {
+      document.write('<scr'+'ipt src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"><\/scr'+'ipt>');
+      document.write('<scr'+'ipt src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"><\/scr'+'ipt>');
+    }
+  </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -304,20 +312,19 @@ function getDefaultServer() {
 }
 
 const serverInput = document.getElementById('server-input');
-const savedHost   = sessionStorage.getItem('wsHost');
-const autoHost    = getDefaultServer();
 
-// Als het serveradres automatisch bepaald kan worden, verberg het veld
-if (autoHost && !savedHost) {
-  serverInput.value = autoHost;
-  // veld verborgen houden (auto-detect)
+// Firebase: serveradresveld niet nodig
+if (window.FIREBASE_CONFIG) {
+  document.getElementById('server-section').style.display = 'none';
 } else {
+  const savedHost = sessionStorage.getItem('wsHost');
+  const autoHost  = getDefaultServer();
   serverInput.value = savedHost || autoHost;
-  // Toon veld alleen als we NIET op een echte host staan (bijv. file://)
+  // Toon veld alleen als we niet op een echte host staan (bijv. file://)
   if (!location.host) {
     document.getElementById('server-section').style.display = 'block';
     document.getElementById('pair-intro').textContent =
-      'Vul het serveradres in (zichtbaar op het dashboard) en de koppelcode.';
+      'Vul het serveradres en de koppelcode in.';
   }
 }
 
@@ -338,6 +345,7 @@ function setStatus(connected, label) {
 }
 
 function send(msg) {
+  if (window._fbSend) { window._fbSend(msg); return; }
   if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
 }
 
@@ -388,29 +396,70 @@ function register(code) {
   send({ type: 'register', role: 'remote', code: code.toUpperCase() });
 }
 
+/* ══════════════════════════════════════
+   FIREBASE TRANSPORT (serverloos)
+══════════════════════════════════════ */
+function connectFirebase(code) {
+  let fbApp;
+  try {
+    fbApp = firebase.app();   // hergebruik als al geïnitialiseerd
+  } catch {
+    fbApp = firebase.initializeApp(window.FIREBASE_CONFIG);
+  }
+  const db      = firebase.database(fbApp);
+  const roomRef = db.ref(`rooms/${code}`);
+
+  /* Controleer of de kamer bestaat (dashboard is open) */
+  roomRef.child('state').once('value', snap => {
+    if (!snap.exists()) {
+      document.getElementById('pair-error').textContent =
+        'Code niet gevonden. Is het dashboard al geopend?';
+      return;
+    }
+    paired = true;
+    setStatus(true, 'Verbonden via Firebase');
+    document.getElementById('pair-screen').classList.remove('active');
+    document.getElementById('control-screen').classList.add('active');
+    document.getElementById('pair-error').textContent = '';
+  });
+
+  /* State-wijzigingen ontvangen */
+  roomRef.child('state').on('value', snap => {
+    const state = snap.val();
+    if (state) applyState(state);
+  });
+
+  /* Commando's sturen via Firebase */
+  window._fbSend = msg => roomRef.child('cmd').push(msg);
+}
+
 /* ── Pairing ── */
 document.getElementById('btn-pair').addEventListener('click', () => {
-  const host = serverInput.value.trim().replace(/^wss?:\/\//, '').replace(/\/$/, '');
   const code = document.getElementById('pair-code-input').value.trim().toUpperCase();
 
-  if (!host) {
-    document.getElementById('pair-error').textContent = 'Voer het serveradres in.';
-    return;
-  }
   if (code.length < 6) {
     document.getElementById('pair-error').textContent = 'Voer een geldige 6-tekens code in.';
     return;
   }
-
-  sessionStorage.setItem('wsHost', host);
   sessionStorage.setItem('pairCode', code);
 
-  // (Her)verbind met het opgegeven serveradres
-  if (ws) ws.onclose = () => {};  // voorkom auto-reconnect met oud adres
+  /* Firebase-modus: geen serveradres nodig */
+  if (window.FIREBASE_CONFIG) {
+    connectFirebase(code);
+    return;
+  }
+
+  /* WebSocket-modus */
+  const host = serverInput.value.trim().replace(/^wss?:\/\//, '').replace(/\/$/, '');
+  if (!host) {
+    document.getElementById('pair-error').textContent = 'Voer het serveradres in.';
+    return;
+  }
+  sessionStorage.setItem('wsHost', host);
+  if (ws) ws.onclose = () => {};
   if (ws && ws.readyState < 2) ws.close();
   wsHost = host;
   connect();
-  // registreer zodra verbinding open is (onopen stuurt register)
   const waitAndRegister = setInterval(() => {
     if (ws && ws.readyState === WebSocket.OPEN) {
       register(code);

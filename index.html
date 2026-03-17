@@ -6,6 +6,14 @@
   <title>Gemeenteraadsverkiezingen 2026 – Land van Cuijk</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <!-- Firebase SDK – alleen geladen als firebase-config.js aanwezig is -->
+  <script src="firebase-config.js" onerror="window.FIREBASE_CONFIG=null"></script>
+  <script>
+    if (window.FIREBASE_CONFIG) {
+      document.write('<scr'+'ipt src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"><\/scr'+'ipt>');
+      document.write('<scr'+'ipt src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"><\/scr'+'ipt>');
+    }
+  </script>
   <style>
     *, *::before, *::after {
       box-sizing: border-box; margin: 0; padding: 0;
@@ -589,24 +597,13 @@ function initMapHitDetection() {
 initMapHitDetection();
 
 /* ══════════════════════════════════════
-   REMOTE CONTROL – WEBSOCKET CLIENT
+   REMOTE CONTROL
 ══════════════════════════════════════ */
-let _remoteWs  = null;
+let _remoteWs    = null;
 let _remoteRetry = 1000;
 
-function sendState() {
-  if (!_remoteWs || _remoteWs.readyState !== WebSocket.OPEN) return;
-  const screen = document.getElementById('map-screen').style.display !== 'none' ? 'map' : 'results';
-  const revealedPids = Array.from(document.querySelectorAll('.bar-2026.show'))
-    .map(el => el.id.replace('b26-', ''));
-  _remoteWs.send(JSON.stringify({
-    type: 'state',
-    screen,
-    place: curPlace,
-    revealedPids,
-    sortMode,
-  }));
-}
+/* Standaard no-op; wordt overschreven door het gekozen transport */
+function sendState() {}
 
 function handleRemoteCommand(msg) {
   switch (msg.action) {
@@ -619,8 +616,47 @@ function handleRemoteCommand(msg) {
   }
 }
 
-function initRemoteWs() {
-  if (!location.host) return; // directe bestandsopening, geen server
+/* ── Stateobject opbouwen ── */
+function buildStateMsg() {
+  const screen = document.getElementById('map-screen').style.display !== 'none' ? 'map' : 'results';
+  const revealedPids = Array.from(document.querySelectorAll('.bar-2026.show'))
+    .map(el => el.id.replace('b26-', ''));
+  return { type: 'state', screen, place: curPlace, revealedPids, sortMode };
+}
+
+/* ══════════════════════════════════════
+   TRANSPORT – FIREBASE (serverloos)
+══════════════════════════════════════ */
+function initFirebaseTransport() {
+  const app     = firebase.initializeApp(window.FIREBASE_CONFIG);
+  const db      = firebase.database(app);
+  const FCHARS  = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const fbCode  = Array.from({ length: 6 }, () => FCHARS[Math.floor(Math.random() * FCHARS.length)]).join('');
+  const roomRef = db.ref(`rooms/${fbCode}`);
+
+  /* Koppelcode tonen */
+  const el = document.getElementById('pair-info');
+  if (el) { el.innerHTML = `Code: <strong>${fbCode}</strong>`; el.classList.add('ready'); }
+
+  /* Commando's ontvangen */
+  roomRef.child('cmd').on('child_added', snap => {
+    const msg = snap.val();
+    if (msg) handleRemoteCommand(msg);
+    snap.ref.remove();
+  });
+
+  /* State sturen */
+  window.sendState = () => roomRef.child('state').set(buildStateMsg());
+
+  /* Ruimte opruimen als dashboard sluit */
+  window.addEventListener('beforeunload', () => roomRef.remove());
+}
+
+/* ══════════════════════════════════════
+   TRANSPORT – WEBSOCKET (met server.js)
+══════════════════════════════════════ */
+function initWebSocketTransport() {
+  if (!location.host) return;
   const wsProto = location.protocol === 'https:' ? 'wss' : 'ws';
   _remoteWs = new WebSocket(`${wsProto}://${location.host}/ws`);
 
@@ -647,14 +683,24 @@ function initRemoteWs() {
   };
 
   _remoteWs.onclose = () => {
-    setTimeout(initRemoteWs, _remoteRetry);
+    setTimeout(initWebSocketTransport, _remoteRetry);
     _remoteRetry = Math.min(_remoteRetry * 2, 15000);
   };
 
   _remoteWs.onerror = () => {};
+
+  window.sendState = () => {
+    if (!_remoteWs || _remoteWs.readyState !== WebSocket.OPEN) return;
+    _remoteWs.send(JSON.stringify(buildStateMsg()));
+  };
 }
 
-initRemoteWs();
+/* ── Transport kiezen en starten ── */
+if (window.FIREBASE_CONFIG) {
+  initFirebaseTransport();
+} else {
+  initWebSocketTransport();
+}
 
 document.getElementById('map-logo').addEventListener('click', openTotaal);
 

@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Remote – Verkiezingsscherm 2026</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #0d1a0e;
+      color: #e8f5e9;
+      min-height: 100vh;
+      padding: 0 0 env(safe-area-inset-bottom);
+    }
+
+    /* ── TOPBAR ── */
+    #topbar {
+      background: #002a02;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #1a5c1e;
+      position: sticky; top: 0; z-index: 100;
+    }
+    #topbar h1 { font-size: 15px; font-weight: 700; letter-spacing: 0.05em; }
+    #status-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: #ef4444; flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    #status-dot.connected { background: #22c55e; }
+    #status-text { font-size: 12px; color: #86efac; margin-left: 8px; }
+    #topbar-right { display: flex; align-items: center; gap: 8px; }
+
+    /* ── SCHERMEN ── */
+    .screen { display: none; padding: 16px; }
+    .screen.active { display: block; }
+
+    /* ── PAIR SCREEN ── */
+    #pair-screen { max-width: 420px; margin: 0 auto; padding-top: 48px; text-align: center; }
+    #pair-screen h2 { font-size: 22px; font-weight: 700; margin-bottom: 10px; color: #86efac; }
+    #pair-screen p  { font-size: 14px; color: #a7f3d0; margin-bottom: 28px; line-height: 1.5; }
+    #code-input {
+      display: flex; gap: 8px; justify-content: center; margin-bottom: 20px;
+    }
+    #code-input input {
+      width: 100%; max-width: 220px;
+      padding: 14px 18px;
+      font-size: 28px; font-weight: 700;
+      letter-spacing: 0.15em;
+      text-align: center;
+      text-transform: uppercase;
+      background: #1a2e1b;
+      border: 2px solid #2d5c30;
+      border-radius: 10px;
+      color: #fff;
+      outline: none;
+    }
+    #code-input input:focus { border-color: #22c55e; }
+    #btn-pair {
+      width: 100%; max-width: 220px;
+      padding: 14px;
+      font-size: 16px; font-weight: 700;
+      background: #16a34a;
+      color: #fff;
+      border: none; border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.18s;
+    }
+    #btn-pair:hover { background: #15803d; }
+    #pair-error { color: #f87171; font-size: 14px; margin-top: 12px; min-height: 20px; }
+
+    /* ── CONTROL SCREEN ── */
+    #control-screen { padding-bottom: 32px; }
+
+    .section { margin-bottom: 20px; }
+    .section-title {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #4ade80;
+      margin-bottom: 10px;
+      padding-left: 2px;
+    }
+
+    /* Statusbalk */
+    #state-bar {
+      background: #1a2e1b;
+      border: 1px solid #2d5c30;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #a7f3d0;
+      margin-bottom: 18px;
+      line-height: 1.5;
+    }
+    #state-bar strong { color: #fff; }
+
+    /* Actieknoppen */
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn {
+      padding: 12px 18px;
+      font-size: 14px; font-weight: 600;
+      border: none; border-radius: 8px;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.12s;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { transform: scale(0.96); opacity: 0.85; }
+    .btn-primary { background: #16a34a; color: #fff; }
+    .btn-secondary { background: #1e3a20; color: #86efac; border: 1px solid #2d5c30; }
+    .btn-danger  { background: #7f1d1d; color: #fca5a5; }
+    .btn-neutral { background: #1e3a20; color: #d1fae5; border: 1px solid #2d5c30; }
+    .btn-full { flex: 1 1 100%; text-align: center; padding: 14px; font-size: 15px; }
+
+    /* Plaatsen grid */
+    .places-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 8px;
+    }
+    .btn-place {
+      padding: 10px 6px;
+      font-size: 13px; font-weight: 600;
+      background: #1a2e1b;
+      color: #d1fae5;
+      border: 1px solid #2d5c30;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.15s, border-color 0.15s, transform 0.12s;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-place:active { transform: scale(0.96); }
+    .btn-place.current {
+      background: #14532d;
+      border-color: #22c55e;
+      color: #fff;
+    }
+
+    /* Partijen grid */
+    .parties-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 8px;
+    }
+    .btn-party {
+      padding: 11px 8px;
+      font-size: 13px; font-weight: 700;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+      color: #fff;
+      transition: opacity 0.15s, transform 0.12s, border-color 0.15s;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-party:active { transform: scale(0.96); }
+    .btn-party.revealed { opacity: 0.45; border-color: rgba(255,255,255,0.3); }
+    .btn-party.revealed::after { content: ' ✓'; }
+  </style>
+</head>
+<body>
+
+<div id="topbar">
+  <h1>Verkiezingsscherm 2026 – Remote</h1>
+  <div id="topbar-right">
+    <div id="status-dot"></div>
+    <span id="status-text">Niet verbonden</span>
+  </div>
+</div>
+
+<!-- ══ KOPPELSCHERM ══ -->
+<div id="pair-screen" class="screen active">
+  <h2>Verbinden</h2>
+  <p>Voer de 6-tekens koppelcode in die<br>op het dashboard wordt weergegeven.</p>
+  <div id="code-input">
+    <input id="pair-code-input" type="text" maxlength="6" placeholder="XXXXXX" autocomplete="off" autocorrect="off" spellcheck="false">
+  </div>
+  <div style="display:flex;justify-content:center">
+    <button id="btn-pair" class="btn btn-primary">Verbinden</button>
+  </div>
+  <div id="pair-error"></div>
+</div>
+
+<!-- ══ BEDIENINGSSCHERM ══ -->
+<div id="control-screen" class="screen">
+
+  <!-- Status -->
+  <div id="state-bar">Scherm: <strong id="sb-screen">—</strong> &nbsp;|&nbsp; Weergave: <strong id="sb-place">—</strong></div>
+
+  <!-- Hoofdacties -->
+  <div class="section">
+    <div class="section-title">Acties</div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="rc-back">← Terug naar kaart</button>
+      <button class="btn btn-primary"   id="rc-totaal">Totaal overzicht</button>
+      <button class="btn btn-neutral"   id="rc-reveal-all">Onthul alles</button>
+      <button class="btn btn-neutral"   id="rc-sort">Sorteer / Reset</button>
+    </div>
+  </div>
+
+  <!-- Plaatsen -->
+  <div class="section">
+    <div class="section-title">Navigeer naar plaats</div>
+    <div class="places-grid" id="places-grid"></div>
+  </div>
+
+  <!-- Partijen -->
+  <div class="section">
+    <div class="section-title">Onthul partij</div>
+    <div class="parties-grid" id="parties-grid"></div>
+  </div>
+
+</div>
+
+<script>
+/* ══════════════════════════════════════
+   DATA
+══════════════════════════════════════ */
+const PARTIES = [
+  { id:'CDA',         name:'CDA',          color:'#2CC74D' },
+  { id:'TeamLokaal',  name:'Team Lokaal',  color:'#02A8F3' },
+  { id:'LiberaalLVC', name:'Liberaal LVC', color:'#7B56A4' },
+  { id:'GLPVDA',      name:'GL-PvdA',      color:'#C01414' },
+  { id:'SP',          name:'SP',           color:'#E8161C' },
+  { id:'VVD',         name:'VVD',          color:'#FF5400' },
+  { id:'D66',         name:'D66',          color:'#5BB89A' },
+  { id:'FVD',         name:'FvD',          color:'#A81814' },
+  { id:'LBT',         name:'LBT',          color:'#E8C000' },
+  { id:'50Plus',      name:'50Plus',       color:'#84236C' },
+];
+
+const PLACES = [
+  'Beers','Beugen','Boxmeer','Cuijk','Escharen','Gassel','Grave','Groeningen',
+  'Haps','Holthees','Katwijk','Landhorst','Langenboom','Ledeacker','Linden',
+  'Maashees','Mill','Oeffelt','Oploo','Overloon','Rijkevoort','Sambeek',
+  'Sint_Agatha','Sint_Anthonis','Sint_Hubert','Stevensbeek','Velp','Vianen',
+  'Vierlingsbeek','Vortum-Mullem','Wanroij','Westerbeek','Wilbertoord'
+];
+
+/* ══════════════════════════════════════
+   UI OPBOUWEN
+══════════════════════════════════════ */
+const placesGrid   = document.getElementById('places-grid');
+const partiesGrid  = document.getElementById('parties-grid');
+
+PLACES.forEach(place => {
+  const btn = document.createElement('button');
+  btn.className    = 'btn-place';
+  btn.dataset.place = place;
+  btn.textContent  = place.replace(/_/g, ' ');
+  btn.addEventListener('click', () => send({ type:'command', action:'openPlace', place }));
+  placesGrid.appendChild(btn);
+});
+
+PARTIES.forEach(p => {
+  const btn = document.createElement('button');
+  btn.className   = 'btn-party';
+  btn.dataset.pid = p.id;
+  btn.textContent = p.name;
+  btn.style.background = p.color;
+  btn.addEventListener('click', () => send({ type:'command', action:'revealOne', pid: p.id }));
+  partiesGrid.appendChild(btn);
+});
+
+document.getElementById('rc-back').addEventListener('click',       () => send({ type:'command', action:'back' }));
+document.getElementById('rc-totaal').addEventListener('click',     () => send({ type:'command', action:'openTotaal' }));
+document.getElementById('rc-reveal-all').addEventListener('click', () => send({ type:'command', action:'revealAll' }));
+document.getElementById('rc-sort').addEventListener('click',       () => send({ type:'command', action:'sort' }));
+
+/* ══════════════════════════════════════
+   WEBSOCKET
+══════════════════════════════════════ */
+let ws       = null;
+let paired   = false;
+let retryMs  = 1000;
+
+const statusDot  = document.getElementById('status-dot');
+const statusText = document.getElementById('status-text');
+
+function setStatus(connected, label) {
+  statusDot.classList.toggle('connected', connected);
+  statusText.textContent = label;
+}
+
+function send(msg) {
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
+}
+
+function connect() {
+  ws = new WebSocket(`ws://${location.host}/ws`);
+
+  ws.onopen = () => {
+    setStatus(false, 'Verbinden…');
+    retryMs = 1000;
+    if (paired) {
+      const savedCode = sessionStorage.getItem('pairCode');
+      if (savedCode) register(savedCode);
+    }
+  };
+
+  ws.onmessage = e => {
+    let msg;
+    try { msg = JSON.parse(e.data); } catch { return; }
+
+    if (msg.type === 'paired') {
+      paired = true;
+      setStatus(true, 'Verbonden');
+      document.getElementById('pair-screen').classList.remove('active');
+      document.getElementById('control-screen').classList.add('active');
+      document.getElementById('pair-error').textContent = '';
+      return;
+    }
+    if (msg.type === 'error') {
+      document.getElementById('pair-error').textContent = msg.message;
+      return;
+    }
+    if (msg.type === 'state') {
+      applyState(msg);
+    }
+  };
+
+  ws.onclose = () => {
+    setStatus(false, 'Verbroken – opnieuw verbinden…');
+    setTimeout(connect, retryMs);
+    retryMs = Math.min(retryMs * 2, 15000);
+  };
+
+  ws.onerror = () => {};
+}
+
+function register(code) {
+  send({ type:'register', role:'remote', code: code.toUpperCase() });
+}
+
+/* ── Pairing ── */
+document.getElementById('btn-pair').addEventListener('click', () => {
+  const code = document.getElementById('pair-code-input').value.trim().toUpperCase();
+  if (code.length < 6) {
+    document.getElementById('pair-error').textContent = 'Voer een geldige 6-tekens code in.';
+    return;
+  }
+  sessionStorage.setItem('pairCode', code);
+  register(code);
+});
+
+document.getElementById('pair-code-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('btn-pair').click();
+});
+
+/* ══════════════════════════════════════
+   STATE VERWERKEN
+══════════════════════════════════════ */
+function applyState(state) {
+  /* statusbalk */
+  const screenLabel = state.screen === 'map' ? 'Kaartoverzicht' : 'Uitslag';
+  document.getElementById('sb-screen').textContent = screenLabel;
+  const placeLabel = state.place
+    ? (state.place === '__totaal__' ? 'Totaal' : state.place.replace(/_/g, ' '))
+    : '—';
+  document.getElementById('sb-place').textContent = placeLabel;
+
+  /* actieve plaatsknop */
+  document.querySelectorAll('.btn-place').forEach(btn => {
+    btn.classList.toggle('current', btn.dataset.place === state.place);
+  });
+
+  /* onthuld-status partijen */
+  const revealed = new Set(state.revealedPids || []);
+  document.querySelectorAll('.btn-party').forEach(btn => {
+    btn.classList.toggle('revealed', revealed.has(btn.dataset.pid));
+  });
+}
+
+/* ══════════════════════════════════════
+   START
+══════════════════════════════════════ */
+connect();
+</script>
+</body>
+</html>

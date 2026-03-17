@@ -285,6 +285,19 @@
     }
     #dip-overlay.show { opacity: 1; pointer-events: all; }
 
+    /* ── Remote koppelcode ── */
+    #pair-info {
+      position: absolute; bottom: 22px; left: 44px;
+      z-index: 30; pointer-events: none;
+      font-size: 14px; font-weight: 700;
+      color: #002a02;
+      letter-spacing: 0.08em;
+      text-shadow: 0 0 10px rgba(255,255,255,0.95), 0 0 4px rgba(255,255,255,0.8);
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+    #pair-info.ready { opacity: 1; }
+
   </style>
 </head>
 <body>
@@ -378,6 +391,9 @@
 
     <!-- Logo rechtsonder – klik opent totaaloverzicht -->
     <img id="map-logo" src="images/img_33 logo.png" alt="logo">
+
+    <!-- Remote koppelcode linksonder -->
+    <div id="pair-info"></div>
 
   </div>
 
@@ -569,6 +585,70 @@ function initMapHitDetection() {
 
 initMapHitDetection();
 
+/* ══════════════════════════════════════
+   REMOTE CONTROL – WEBSOCKET CLIENT
+══════════════════════════════════════ */
+let _remoteWs  = null;
+let _remoteRetry = 1000;
+
+function sendState() {
+  if (!_remoteWs || _remoteWs.readyState !== WebSocket.OPEN) return;
+  const screen = document.getElementById('map-screen').style.display !== 'none' ? 'map' : 'results';
+  const revealedPids = Array.from(document.querySelectorAll('.bar-2026.show'))
+    .map(el => el.id.replace('b26-', ''));
+  _remoteWs.send(JSON.stringify({
+    type: 'state',
+    screen,
+    place: curPlace,
+    revealedPids,
+    sortMode,
+  }));
+}
+
+function handleRemoteCommand(msg) {
+  switch (msg.action) {
+    case 'openPlace':  openPlace(msg.place);  break;
+    case 'openTotaal': openTotaal();          break;
+    case 'back':       goBack();              break;
+    case 'revealOne':  revealOne(msg.pid);    sendState(); break;
+    case 'revealAll':  revealAll();           sendState(); break;
+    case 'sort':       toggleSort();          sendState(); break;
+  }
+}
+
+function initRemoteWs() {
+  if (!location.host) return; // directe bestandsopening, geen server
+  _remoteWs = new WebSocket(`ws://${location.host}/ws`);
+
+  _remoteWs.onopen = () => {
+    _remoteRetry = 1000;
+    _remoteWs.send(JSON.stringify({ type: 'register', role: 'dashboard' }));
+    fetch('/pair-code')
+      .then(r => r.json())
+      .then(({ code }) => {
+        const el = document.getElementById('pair-info');
+        if (el) { el.textContent = `Remote code: ${code}`; el.classList.add('ready'); }
+      })
+      .catch(() => {});
+    sendState();
+  };
+
+  _remoteWs.onmessage = e => {
+    let msg;
+    try { msg = JSON.parse(e.data); } catch { return; }
+    if (msg.type === 'command') handleRemoteCommand(msg);
+  };
+
+  _remoteWs.onclose = () => {
+    setTimeout(initRemoteWs, _remoteRetry);
+    _remoteRetry = Math.min(_remoteRetry * 2, 15000);
+  };
+
+  _remoteWs.onerror = () => {};
+}
+
+initRemoteWs();
+
 document.getElementById('map-logo').addEventListener('click', openTotaal);
 
 /* ══════════════════════════════════════
@@ -598,6 +678,7 @@ function openPlace(place) {
     fetchSheetData(place);
     clearInterval(pollTimer);
     pollTimer = setInterval(() => fetchSheetData(place), POLL_MS);
+    sendState();
   });
 }
 
@@ -619,6 +700,7 @@ function openTotaal() {
     fetchAllSheets();
     clearInterval(pollTimer);
     pollTimer = setInterval(fetchAllSheets, POLL_MS);
+    sendState();
   });
 }
 
@@ -937,7 +1019,7 @@ function toggleSort() {
 /* ══════════════════════════════════════
    NAVIGATIE
 ══════════════════════════════════════ */
-document.getElementById('btn-back').addEventListener('click', () => {
+function goBack() {
   clearInterval(pollTimer);
   const placeToMark = curPlace;
   dip(() => {
@@ -949,10 +1031,12 @@ document.getElementById('btn-back').addEventListener('click', () => {
       if (img) img.classList.add('visited');
     }
     curPlace = null;
+    sendState();
   });
-});
-document.getElementById('btn-all').addEventListener('click',  revealAll);
-document.getElementById('btn-sort').addEventListener('click', toggleSort);
+}
+document.getElementById('btn-back').addEventListener('click', goBack);
+document.getElementById('btn-all').addEventListener('click',  () => { revealAll();    sendState(); });
+document.getElementById('btn-sort').addEventListener('click', () => { toggleSort();   sendState(); });
 
 </script>
 </body>

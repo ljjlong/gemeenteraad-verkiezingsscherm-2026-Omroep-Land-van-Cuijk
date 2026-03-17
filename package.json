@@ -1,0 +1,12 @@
+{
+  "name": "gemeenteraad-verkiezingsscherm-2026",
+  "version": "1.0.0",
+  "description": "Verkiezingsscherm met remote control",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

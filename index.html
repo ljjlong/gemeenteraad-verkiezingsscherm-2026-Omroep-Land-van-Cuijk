@@ -621,7 +621,8 @@ function handleRemoteCommand(msg) {
 
 function initRemoteWs() {
   if (!location.host) return; // directe bestandsopening, geen server
-  _remoteWs = new WebSocket(`ws://${location.host}/ws`);
+  const wsProto = location.protocol === 'https:' ? 'wss' : 'ws';
+  _remoteWs = new WebSocket(`${wsProto}://${location.host}/ws`);
 
   _remoteWs.onopen = () => {
     _remoteRetry = 1000;

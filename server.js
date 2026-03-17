@@ -1,11 +1,19 @@
 'use strict';
-const http = require('http');
-const fs   = require('fs');
-const path = require('path');
-const os   = require('os');
+const http  = require('http');
+const https = require('https');
+const fs    = require('fs');
+const path  = require('path');
+const os    = require('os');
 const { WebSocketServer } = require('ws');
 
-const PORT = 8080;
+/*
+  Poort-configuratie:
+    - Achter Nginx (reverse proxy):  PORT=8080  (standaard, HTTP/WS)
+    - Standalone met SSL:            PORT=443   via SSL_CERT + SSL_KEY env vars
+*/
+const PORT     = parseInt(process.env.PORT || '8080', 10);
+const SSL_CERT = process.env.SSL_CERT || '';
+const SSL_KEY  = process.env.SSL_KEY  || '';
 
 /* ── Koppelcode: 6 tekens, geen verwarrende chars ── */
 const CHARS     = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -30,23 +38,24 @@ function getLocalIP() {
 }
 
 /* ══════════════════════════════════════
-   HTTP – STATISCHE BESTANDEN
+   HTTP REQUEST HANDLER
 ══════════════════════════════════════ */
-const server = http.createServer((req, res) => {
+function requestHandler(req, res) {
   const url = req.url.split('?')[0];
 
+  /* CORS preflight */
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
+
   if (url === '/pair-code') {
-    const localIP  = getLocalIP();
+    const localIP   = getLocalIP();
     const remoteUrl = `http://${localIP}:${PORT}/remote`;
-    res.writeHead(200, {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-    });
+    res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ code: PAIR_CODE, remoteUrl, wsHost: `${localIP}:${PORT}` }));
     return;
   }
 
-  let filePath = url === '/' ? '/index.html'
+  let filePath = url === '/'       ? '/index.html'
                : url === '/remote' ? '/remote.html'
                : url;
 
@@ -58,16 +67,38 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
     res.end(data);
   });
-});
+}
+
+/* ══════════════════════════════════════
+   SERVER AANMAKEN – SSL of HTTP
+══════════════════════════════════════ */
+let server;
+let usingSSL = false;
+
+if (SSL_CERT && SSL_KEY) {
+  try {
+    server = https.createServer(
+      { cert: fs.readFileSync(SSL_CERT), key: fs.readFileSync(SSL_KEY) },
+      requestHandler
+    );
+    usingSSL = true;
+  } catch (e) {
+    console.error(`[server] SSL-certificaat laden mislukt: ${e.message}`);
+    console.error('[server] Terugvallen op HTTP...');
+    server = http.createServer(requestHandler);
+  }
+} else {
+  server = http.createServer(requestHandler);
+}
 
 /* ══════════════════════════════════════
    WEBSOCKET
 ══════════════════════════════════════ */
 const wss = new WebSocketServer({ server, path: '/ws' });
 
-let dashboard    = null;
-let lastState    = null;
-const remotes    = new Set();
+let dashboard = null;
+let lastState = null;
+const remotes = new Set();
 
 function broadcast(remoteSet, msg) {
   const raw = typeof msg === 'string' ? msg : JSON.stringify(msg);
@@ -81,13 +112,12 @@ wss.on('connection', ws => {
     let msg;
     try { msg = JSON.parse(raw); } catch { return; }
 
-    /* ── Registratie ── */
     if (ws.role === 'pending') {
       if (msg.type === 'register' && msg.role === 'dashboard') {
-        ws.role  = 'dashboard';
+        ws.role   = 'dashboard';
         dashboard = ws;
         console.log('[server] Dashboard verbonden');
-        if (lastState) ws.send(JSON.stringify(lastState)); // hersend state bij reconnect
+        if (lastState) ws.send(JSON.stringify(lastState));
         return;
       }
       if (msg.type === 'register' && msg.role === 'remote') {
@@ -105,14 +135,12 @@ wss.on('connection', ws => {
       return;
     }
 
-    /* ── Dashboard → doorsturen naar remotes ── */
     if (ws.role === 'dashboard' && msg.type === 'state') {
       lastState = msg;
       broadcast(remotes, raw.toString());
       return;
     }
 
-    /* ── Remote → doorsturen naar dashboard ── */
     if (ws.role === 'remote' && msg.type === 'command') {
       if (dashboard && dashboard.readyState === 1) dashboard.send(raw.toString());
       return;
@@ -131,14 +159,13 @@ wss.on('connection', ws => {
    START
 ══════════════════════════════════════ */
 server.listen(PORT, '0.0.0.0', () => {
+  const proto   = usingSSL ? 'https' : 'http';
   const localIP = getLocalIP();
 
   console.log('\n╔══════════════════════════════════════════════════════════╗');
   console.log(`║  Koppelcode : ${PAIR_CODE}                                   ║`);
+  console.log(`║  Modus      : ${usingSSL ? 'HTTPS / WSS  (standalone SSL)  ' : 'HTTP  / WS   (of achter Nginx) '}║`);
   console.log('╚══════════════════════════════════════════════════════════╝');
-  console.log(`\nDashboard  : http://${localIP}:${PORT}/`);
-  console.log(`Remote     : http://${localIP}:${PORT}/remote`);
-  console.log(`\nRemote via externe hosting (zelfde netwerk, HTTP):`);
-  console.log(`  remote.html?server=${localIP}:${PORT}`);
-  console.log('');
+  console.log(`\nDashboard : ${proto}://${localIP}:${PORT}/`);
+  console.log(`Remote    : ${proto}://${localIP}:${PORT}/remote\n`);
 });

@@ -43,10 +43,10 @@
     #pair-screen { max-width: 420px; margin: 0 auto; padding-top: 48px; text-align: center; }
     #pair-screen h2 { font-size: 22px; font-weight: 700; margin-bottom: 10px; color: #86efac; }
     #pair-screen p  { font-size: 14px; color: #a7f3d0; margin-bottom: 28px; line-height: 1.5; }
-    #code-input {
+    .code-input {
       display: flex; gap: 8px; justify-content: center; margin-bottom: 20px;
     }
-    #code-input input {
+    .code-input input {
       width: 100%; max-width: 220px;
       padding: 14px 18px;
       font-size: 28px; font-weight: 700;
@@ -59,7 +59,7 @@
       color: #fff;
       outline: none;
     }
-    #code-input input:focus { border-color: #22c55e; }
+    .code-input input:focus { border-color: #22c55e; }
     #btn-pair {
       width: 100%; max-width: 220px;
       padding: 14px;
@@ -179,11 +179,12 @@
 <!-- ══ KOPPELSCHERM ══ -->
 <div id="pair-screen" class="screen active">
   <h2>Verbinden</h2>
-  <p>Vul het serveradres in (zichtbaar op het dashboard)<br>en de 6-tekens koppelcode.</p>
+  <p id="pair-intro">Voer de koppelcode in die op het dashboard staat.</p>
 
-  <div style="margin-bottom:14px">
+  <!-- Serveradres: alleen tonen als niet automatisch bepaald -->
+  <div id="server-section" style="margin-bottom:14px;display:none">
     <label style="display:block;font-size:12px;color:#86efac;margin-bottom:6px;letter-spacing:0.08em;text-transform:uppercase">Serveradres</label>
-    <div id="code-input">
+    <div class="code-input">
       <input id="server-input" type="text" placeholder="192.168.x.x:8080"
              autocomplete="off" autocorrect="off" spellcheck="false"
              style="font-size:18px;letter-spacing:0.06em;max-width:280px">
@@ -192,7 +193,7 @@
 
   <div style="margin-bottom:20px">
     <label style="display:block;font-size:12px;color:#86efac;margin-bottom:6px;letter-spacing:0.08em;text-transform:uppercase">Koppelcode</label>
-    <div id="code-input">
+    <div class="code-input">
       <input id="pair-code-input" type="text" maxlength="6" placeholder="XXXXXX"
              autocomplete="off" autocorrect="off" spellcheck="false">
     </div>
@@ -294,16 +295,31 @@ document.getElementById('rc-sort').addEventListener('click',       () => send({ 
    SERVERADRES DETECTIE
 ══════════════════════════════════════ */
 function getDefaultServer() {
-  // 1. URL-parameter ?server=192.168.x.x:8080 (werkt bij externe hosting)
+  // 1. URL-parameter ?server=192.168.x.x:8080  (externe hosting)
   const param = new URLSearchParams(location.search).get('server');
   if (param) return param.replace(/^wss?:\/\//, '');
-  // 2. Zelfde origin als de pagina (lokale Node.js server)
+  // 2. Zelfde origin als de pagina  (lokale of HTTPS server)
   if (location.host) return location.host;
   return '';
 }
 
 const serverInput = document.getElementById('server-input');
-serverInput.value = sessionStorage.getItem('wsHost') || getDefaultServer();
+const savedHost   = sessionStorage.getItem('wsHost');
+const autoHost    = getDefaultServer();
+
+// Als het serveradres automatisch bepaald kan worden, verberg het veld
+if (autoHost && !savedHost) {
+  serverInput.value = autoHost;
+  // veld verborgen houden (auto-detect)
+} else {
+  serverInput.value = savedHost || autoHost;
+  // Toon veld alleen als we NIET op een echte host staan (bijv. file://)
+  if (!location.host) {
+    document.getElementById('server-section').style.display = 'block';
+    document.getElementById('pair-intro').textContent =
+      'Vul het serveradres in (zichtbaar op het dashboard) en de koppelcode.';
+  }
+}
 
 /* ══════════════════════════════════════
    WEBSOCKET
@@ -327,7 +343,9 @@ function send(msg) {
 
 function connect() {
   if (!wsHost) return;
-  ws = new WebSocket(`ws://${wsHost}/ws`);
+  // wss:// als de pagina zelf via HTTPS geladen is, anders ws://
+  const wsProto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${wsProto}://${wsHost}/ws`);
 
   ws.onopen = () => {
     setStatus(false, 'Verbinden…');
